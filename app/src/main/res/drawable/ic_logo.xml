@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+
+    <!-- Círculo de fundo -->
+    <path
+        android:fillColor="#C8E6C9"
+        android:pathData="M48,48m-44,0a44,44 0,1 1,88 0a44,44 0,1 1,-88 0" />
+
+    <!-- Símbolo de cifrão simplificado -->
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M48,18 L48,78"
+        android:strokeWidth="4"
+        android:strokeColor="#1B5E20"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#1B5E20"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M58,30 C58,30 38,26 36,38 C34,50 58,48 58,60 C58,72 38,70 36,66" />
+
+</vector>

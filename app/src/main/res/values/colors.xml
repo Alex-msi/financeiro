@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ── Paleta principal ─────────────────────────────────────────────── -->
+    <color name="primary">#1B5E20</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#C8E6C9</color>
+    <color name="on_primary_container">#002106</color>
+
+    <color name="secondary">#388E3C</color>
+    <color name="on_secondary">#FFFFFF</color>
+    <color name="secondary_container">#DCEDC8</color>
+    <color name="on_secondary_container">#1B5E20</color>
+
+    <!-- ── Superfícies ──────────────────────────────────────────────────── -->
+    <color name="background">#F9FBF9</color>
+    <color name="on_background">#1A1C1A</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="on_surface">#1A1C1A</color>
+    <color name="on_surface_variant">#BDBDBD</color>
+    <color name="surface_variant">#F0F4F0</color>
+    <color name="outline">#E0E0E0</color>
+
+    <!-- ── Erros e avisos ───────────────────────────────────────────────── -->
+    <color name="error">#B00020</color>
+    <color name="on_error">#FFFFFF</color>
+    <color name="warning_surface">#FFF8E1</color>
+
+    <!-- ── Receita / Despesa ────────────────────────────────────────────── -->
+    <color name="receita">#2E7D32</color>
+    <color name="despesa">#C62828</color>
+
+</resources>
