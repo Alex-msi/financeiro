@@ -47,7 +47,7 @@ class MainActivity : AppCompatActivity() {
 
         if (onboardingCompleto) {
             // S21 definirá a action correta no nav_graph
-            // navController.navigate(R.id.action_global_dashboard)
+            navController.navigate(R.id.action_global_dashboard)
         }
         // Caso contrário: permanece no startDestination (OnboardingFragment)
     }

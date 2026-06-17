@@ -1,0 +1,156 @@
+crie um arquivo md desse texto abaixo
+analise isso
+---
+# MEMORIAL - APP DE CONTROLE FINANCEIRO
+## Baseado na Planilha "Saldo Tenho" e no App "Minhas Economias"
+---
+## 1. CONTEXTO INICIAL
+### 1.1. Origem
+- Usuário utilizava uma **planilha de controle financeiro** com lógica própria
+- Planilha funcionava com o fluxo: **Saldo Anterior = Saldo Tenho (mês anterior) + Salário**
+- Após pagar cartões, restava o **Saldo Tenho** (patrimônio líquido)
+- Usuário também usava um app chamado **"Minhas Economias"**, que foi descontinuado
+- Objetivo: **criar um novo app** combinando a lógica da planilha com as funcionalidades do app antigo
+---
+## 2. LÓGICA DA PLANILHA (VALIDADA)
+### 2.1. Definições Principais
+| Termo | Definição |
+|-------|-----------|
+| **Saldo Tenho** | Patrimônio líquido real = saldo em contas – dívidas em cartões |
+| **Saldo Anterior** | Patrimônio do mês anterior + salário recebido no início do mês |
+| **Total Cartões** | Soma de todas as faturas/pagamentos de cartão no mês |
+### 2.2. Fórmulas Validadas
+```
+Saldo Anterior (mês atual) = Saldo Tenho (mês anterior) + Salário (mês atual)
+Saldo Tenho (mês atual) = Saldo Anterior – Total de Pagamentos de Cartões
+```
+### 2.3. Exemplo Numérico
+| Mês | Saldo Anterior | Total Cartões | Saldo Tenho |
+|-----|----------------|---------------|-------------|
+| Abr | - | 3.078,39 | 3.445,67 |
+| Mai | 9.455,25 | 3.503,75 | 5.951,50 |
+| Jun | 11.961,08 | 3.330,01 | 8.631,07 |
+---
+## 3. FUNCIONALIDADES DO APP ANTIGO (APROVEITADAS)
+### 3.1. Funcionalidades Principais
+- Adicionar transação (receitas/despesas)
+- Listar transações do mês
+- Categorias personalizáveis
+- Controle de parcelamentos (ex: Amazon 4/6)
+- Relatórios
+### 3.2. Estrutura de Categorias (Base)
+O app antigo tinha categorias como:
+- Alimentação, Animal de Estimação, Casa, Educação, Gastos Esporádicos, Gastos Pessoais, Impostos, Lazer, Outros Gastos, Receita, Saúde, Seguros, Serviços Financeiros, Transporte
+---
+## 4. ESTRUTURA DE CATEGORIAS (ATUALIZADA E APROVADA)
+### 4.1. Grupos Principais e Subcategorias
+| Grupo Principal | Subcategorias |
+|-----------------|---------------|
+| **Raiz** | (categoria estrutural) |
+| **Alimentação** | Açougue, Almoço, Café/Lanches, Churrasco, Diversos, Feira, Guloseimas, Padaria, Restaurante/Pizzaria, Sorveteria, Supermercado |
+| **Animal de Estimação** | Ração, Remédio - pet, Veterinário |
+| **Casa** | Água, Aluguel, Condomínio, Diversos, Empregada Doméstica, Gás, Horta, Internet, Lavanderia, Luz, Manutenção da Casa, Materiais de Limpeza, Material construção, Segurança, Telefone, TV por assinatura |
+| **Compras Terceiros** | (sem subcategorias) |
+| **Educação** | Aulas dança, Concursos, Cursos, Diversos, Escola, Faculdade, Livraria, Material Escolar |
+| **Gastos Esporádicos** | Brinquedos, Cama mesa e banho, Diversos, Doações, Eletrodomésticos, Eletrônicos, Ferramentas, Festas, Manutenção, Móveis e decoração, Presentes, Serviço cartório, Serviços Correios, Utensílios Domésticos |
+| **Gastos Pessoais** | Academia, Acessórios, Perfumaria, Roupas e Calçados, Salão de Beleza |
+| **Impostos** | CNH, DAE, DPVAT, FGTS, INSS, IOF, IPTU, IPVA, IR, Licenciamento, Taxas, Taxas banco, TRLAV |
+| **Lazer** | Bar/Balada, Cinema/Teatro/Show, Diversos, Futebol, Outros Esportes, Passeios, Viagens |
+| **Outros Gastos** | Compulsório, Diversos, Empréstimo, Ferramentas, Festas, Máquina |
+| **Receita** | 13º Salário, Bônus, Comissão, Empréstimo, Estorno, Férias, Honorários, Juros de Investimentos, Outras Receitas, Reembolso, Salário |
+| **Saúde** | Cosméticos, Dentista, Diversos, Exames, Farmácia, Médico, Óculos, Plano de Saúde |
+| **Seguros** | Seguro de Vida, Seguro do Carro, Seguro Residencial |
+| **Serviços Financeiros** | Anuidade Cartão, Consórcio, Juros de Empréstimo, Multas, Seguro de Cartão de Crédito, Tarifas bancárias, Título de Capitalização |
+| **Transporte** | Combustível, Estacionamento, Lavagem do Carro, Metrô/Ônibus, Multas de Trânsito, Pedágio, Táxi |
+---
+## 5. ARQUITETURA DO NOVO APP (DEFINIDA)
+### 5.1. Estrutura de Navegação (Telas)
+| Tela | Funcionalidade |
+|------|----------------|
+| **Dashboard** | Patrimônio líquido, evolução gráfica, resumo do mês, top categorias |
+| **Transações** | Lista de transações do mês, filtros, edição/exclusão |
+| **Adicionar Transação** | Lançamento de receitas/despesas com categoria, data, forma de pagamento, parcelamento |
+| **Cartões e Contas** | Contas bancárias, cartões de crédito, limites, faturas, parcelamentos ativos |
+| **Categorias** | Gerenciamento de categorias e subcategorias (inspirado no app antigo) |
+| **Relatórios** | Gastos por categoria, evolução mensal, fluxo de caixa, exportação |
+---
+### 5.2. Modelo de Dados (Entidades Principais)
+```
+USUARIO
+  ├── id, nome, email
+CONTA_BANCARIA
+  ├── id, nome, saldo_inicial, tipo (corrente/poupança/investimento)
+CARTAO_CREDITO
+  ├── id, nome, limite_total, dia_fechamento_fatura, dia_vencimento_fatura
+CATEGORIA
+  ├── id, nome, tipo (receita/despesa), cor, icone
+SUBCATEGORIA
+  ├── id, nome, categoria_id
+TRANSACAO
+  ├── id, valor, data_competencia, tipo (receita/despesa)
+  ├── categoria_id, subcategoria_id
+  ├── forma_pagamento (cartao/conta/dinheiro)
+  ├── cartao_id (se aplicável)
+  ├── conta_id (se aplicável)
+  ├── parcelado, numero_parcelas, parcela_atual
+  └── observacao
+PARCELAMENTO
+  ├── id, transacao_principal_id, valor_parcela, total_parcelas, parcelas_restantes
+PATRIMONIO
+  ├── id, usuario_id, data_referencia, valor_patrimonio_liquido
+```
+---
+### 5.3. Regras de Negócio (Core)
+#### Patrimônio Líquido
+```
+Patrimônio = SOMA(saldo contas) – SOMA(saldo devedor cartões) – SOMA(parcelamentos futuros)
+```
+#### Fluxo Mensal
+```
+Patrimônio Final = Patrimônio Inicial + Receitas do mês – Pagamentos efetivos do mês
+```
+#### Parcelamentos
+- Compra parcelada → não entra como despesa total no mês da compra
+- Gera N transações (parcelas) nos meses seguintes
+- Cada parcela vinculada à mesma categoria da compra original
+---
+### 5.4. Cartões de Crédito com Datas de Fechamento e Vencimento
+#### Regras Definidas
+- **Dia de fechamento da fatura**: define o corte das compras
+- **Dia de vencimento**: data do pagamento efetivo
+- Compras **antes** do fechamento → entram na fatura do mesmo mês
+- Compras **após** o fechamento → entram na fatura do próximo mês
+#### Exemplo
+| Cartão | Fechamento | Vencimento |
+|--------|------------|------------|
+| Itaú | Dia 10 | Dia 25 |
+| Data da Compra | Mês da Fatura | Pagamento |
+|----------------|---------------|-----------|
+| 05/03 | Março | 25/03 |
+| 15/03 | Abril | 25/04 |
+---
+## 6. DIFERENCIAIS DO NOVO APP
+| Diferencial | Descrição |
+|-------------|-----------|
+| **Patrimônio Líquido (Saldo Tenho)** | Métrica principal, mostrando o que realmente sobra |
+| **Controle de cartões com fechamento/vencimento** | Saber quando cada compra impacta o fluxo |
+| **Parcelamentos como compromissos futuros** | Visibilidade do impacto nos próximos meses |
+| **Categorias hierárquicas** | Organização completa com grupos e subcategorias |
+| **Fluxo claro: Patrimônio + Receitas – Pagamentos** | Transparência total do fluxo de caixa |
+---
+## 7. PRÓXIMOS PASSOS (SUGESTÕES)
+Caso queira dar continuidade ao projeto:
+1. **Modelagem detalhada de dados** (diagrama ER completo)
+2. **User flows completos** (navegação detalhada)
+3. **Especificação de telas** (UI/UX com wireframes)
+4. **Regras de validação e cálculos** (fórmulas exatas)
+5. **Roadmap de desenvolvimento** (MVP, fases, entregas)
+---
+## 8. RESUMO DOS PONTOS MAIS IMPORTANTES
+✅ **Lógica da planilha validada** → Saldo Tenho é a métrica principal
+✅ **Categorias definidas** → 16 grupos principais, 120+ subcategorias
+✅ **Cartões com fechamento e vencimento** → essencial para alocação correta
+✅ **Parcelamentos como compromissos futuros** → visibilidade de impacto
+✅ **App combina** → lógica da planilha + funcionalidades do app antigo
+✅ **Arquitetura definida** → telas, entidades, regras de negócio
+---

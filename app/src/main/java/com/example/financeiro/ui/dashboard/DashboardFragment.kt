@@ -10,6 +10,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import com.example.financeiro.R
 import com.example.financeiro.databinding.FragmentDashboardBinding
 import dagger.hilt.android.AndroidEntryPoint
@@ -44,6 +45,9 @@ class DashboardFragment : Fragment() {
         }
         binding.btnProximoMes.setOnClickListener {
             viewModel.irParaProximoMes()
+        }
+        binding.btnVerTransacoes.setOnClickListener {
+            findNavController().navigate(R.id.action_dashboard_to_transacoes)
         }
     }
 

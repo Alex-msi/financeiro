@@ -10,6 +10,8 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
+import com.example.financeiro.R
 import com.example.financeiro.databinding.FragmentTransacaoListBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -61,7 +63,7 @@ class TransacaoListFragment : Fragment() {
 
         // FAB para adicionar transação — navegação implementada na S17
         binding.fabAdicionarTransacao.setOnClickListener {
-            // findNavController().navigate(R.id.action_lista_to_adicionar)
+            findNavController().navigate(R.id.action_lista_to_adicionar)
         }
     }
 

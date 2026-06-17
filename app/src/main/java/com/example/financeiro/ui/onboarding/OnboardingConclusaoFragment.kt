@@ -12,6 +12,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.financeiro.databinding.FragmentOnboardingConclusaoBinding
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 
 class OnboardingConclusaoFragment : Fragment() {
@@ -60,6 +61,11 @@ class OnboardingConclusaoFragment : Fragment() {
                     // Loading
                     binding.progressBar.isVisible = state.isLoading
                     binding.btnConcluir.isEnabled = !state.isLoading
+
+                    state.erro?.let { erro ->
+                        Snackbar.make(binding.root, erro, Snackbar.LENGTH_LONG).show()
+                        viewModel.limparErro()
+                    }
                 }
             }
         }

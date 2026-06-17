@@ -16,10 +16,21 @@
             app:popUpToInclusive="true" />
     </fragment>
 
+    <action
+        android:id="@+id/action_global_dashboard"
+        app:destination="@id/dashboardFragment"
+        app:popUpTo="@id/onboardingFragment"
+        app:popUpToInclusive="true" />
+
     <fragment
         android:id="@+id/dashboardFragment"
         android:name="com.example.financeiro.ui.dashboard.DashboardFragment"
-        android:label="Dashboard" />
+        android:label="Dashboard">
+
+        <action
+            android:id="@+id/action_dashboard_to_transacoes"
+            app:destination="@id/transacaoListFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/transacaoListFragment"
@@ -27,11 +38,20 @@
         android:label="Transações">
 
         <!-- Ação para adicionar/editar implementada na S17 -->
-        <!--
         <action
             android:id="@+id/action_lista_to_adicionar"
             app:destination="@id/adicionarTransacaoFragment" />
-        -->
+    </fragment>
+
+    <fragment
+        android:id="@+id/adicionarTransacaoFragment"
+        android:name="com.example.financeiro.ui.transacao.AdicionarTransacaoFragment"
+        android:label="Nova TransaÃ§Ã£o">
+
+        <argument
+            android:name="transacaoId"
+            app:argType="long"
+            android:defaultValue="-1L" />
     </fragment>
 
 </navigation>

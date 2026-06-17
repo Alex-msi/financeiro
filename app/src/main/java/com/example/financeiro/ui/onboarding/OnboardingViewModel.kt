@@ -14,6 +14,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -54,6 +55,24 @@ class OnboardingViewModel @Inject constructor(
 
     val totalSteps = 5  // 0..4
 
+    init {
+        carregarDadosExistentes()
+    }
+
+    private fun carregarDadosExistentes() {
+        viewModelScope.launch {
+            try {
+                val contas = contaRepository.getAllAtivas().first()
+                val cartoes = cartaoRepository.getAllAtivos().first()
+                _uiState.update {
+                    it.copy(contas = contas, cartoes = cartoes, erro = null)
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(erro = "Erro ao carregar dados iniciais: ${e.message}") }
+            }
+        }
+    }
+
     // ─── Navegação entre passos ────────────────────────────────────────────────
 
     fun irParaProximoPasso() {
@@ -93,9 +112,8 @@ class OnboardingViewModel @Inject constructor(
         )
         viewModelScope.launch {
             try {
-                contaRepository.insert(conta)
-                // Recarrega a lista local para exibir no passo
-                val novaLista = _uiState.value.contas + conta.copy(id = System.currentTimeMillis())
+                val contaId = contaRepository.insert(conta)
+                val novaLista = _uiState.value.contas + conta.copy(id = contaId)
                 _uiState.update { it.copy(contas = novaLista, erro = null) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(erro = "Erro ao salvar conta: ${e.message}") }
@@ -141,8 +159,8 @@ class OnboardingViewModel @Inject constructor(
         )
         viewModelScope.launch {
             try {
-                cartaoRepository.insert(cartao)
-                val novaLista = _uiState.value.cartoes + cartao.copy(id = System.currentTimeMillis())
+                val cartaoId = cartaoRepository.insert(cartao)
+                val novaLista = _uiState.value.cartoes + cartao.copy(id = cartaoId)
                 _uiState.update { it.copy(cartoes = novaLista, erro = null) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(erro = "Erro ao salvar cartão: ${e.message}") }
