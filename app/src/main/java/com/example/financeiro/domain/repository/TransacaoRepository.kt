@@ -15,5 +15,6 @@ interface TransacaoRepository {
     fun getByCategoria(categoriaId: Long): Flow<List<Transacao>>
     fun getSomaReceitasPeriodo(inicio: Long, fim: Long): Flow<Double?>
     fun getSomaDespesasPeriodo(inicio: Long, fim: Long): Flow<Double?>
+    fun getSomaDespesasCartaoNaoParceladas(): Flow<Double?>
     fun getSaldoPeriodo(inicio: Long, fim: Long): Flow<Double?>
 }

@@ -80,6 +80,14 @@ interface TransacaoDao {
     """)
     fun getSomaDespesasPeriodo(inicio: Long, fim: Long): Flow<Double?>
 
+    @Query("""
+        SELECT SUM(valor) FROM transacoes
+        WHERE tipo = 'despesa'
+        AND forma_pagamento = 'cartao'
+        AND parcelado = 0
+    """)
+    fun getSomaDespesasCartaoNaoParceladas(): Flow<Double?>
+
     // Saldo do período (receitas - despesas)
     @Query("""
         SELECT SUM(CASE WHEN tipo = 'receita' THEN valor ELSE -valor END)

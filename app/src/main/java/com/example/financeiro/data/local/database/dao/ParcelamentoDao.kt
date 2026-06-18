@@ -50,6 +50,12 @@ interface ParcelamentoDao {
     """)
     fun getParcelamentosEmAberto(): Flow<List<ParcelamentoEntity>>
 
+    @Query("""
+        SELECT SUM(valor_parcela * (total_parcelas - parcelas_pagas)) FROM parcelamentos
+        WHERE parcelas_pagas < total_parcelas
+    """)
+    fun getSomaSaldoDevedorEmAberto(): Flow<Double?>
+
     // Soma do valor comprometido em parcelamentos futuros no mês
     @Query("""
         SELECT SUM(valor_parcela) FROM parcelamentos

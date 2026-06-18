@@ -122,10 +122,18 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun removerConta(index: Int) {
-        val lista = _uiState.value.contas.toMutableList()
-        if (index in lista.indices) {
-            lista.removeAt(index)
-            _uiState.update { it.copy(contas = lista) }
+        val conta = _uiState.value.contas.getOrNull(index) ?: return
+        viewModelScope.launch {
+            try {
+                contaRepository.delete(conta)
+                val lista = _uiState.value.contas.toMutableList()
+                if (index in lista.indices) {
+                    lista.removeAt(index)
+                    _uiState.update { it.copy(contas = lista, erro = null) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(erro = "Erro ao remover conta: ${e.message}") }
+            }
         }
     }
 
@@ -169,10 +177,26 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun removerCartao(index: Int) {
-        val lista = _uiState.value.cartoes.toMutableList()
-        if (index in lista.indices) {
-            lista.removeAt(index)
-            _uiState.update { it.copy(cartoes = lista) }
+        val cartao = _uiState.value.cartoes.getOrNull(index) ?: return
+        viewModelScope.launch {
+            try {
+                cartaoRepository.delete(cartao)
+                val lista = _uiState.value.cartoes.toMutableList()
+                if (index in lista.indices) {
+                    lista.removeAt(index)
+                    _uiState.update {
+                        it.copy(
+                            cartoes = lista,
+                            parcelamentosPendentes = it.parcelamentosPendentes.filterNot { rascunho ->
+                                rascunho.cartaoId == cartao.id
+                            },
+                            erro = null
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(erro = "Erro ao remover cartao: ${e.message}") }
+            }
         }
     }
 

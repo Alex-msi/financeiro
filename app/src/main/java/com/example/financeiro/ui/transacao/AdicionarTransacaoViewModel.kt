@@ -149,11 +149,37 @@ class AdicionarTransacaoViewModel @Inject constructor(
     fun onTipoChanged(tipo: String) = _uiState.update { it ->
         // Ao mudar para receita, força forma de pagamento para "conta"
         val forma = if (tipo == "receita" && it.formaPagamento == "cartao") "conta" else it.formaPagamento
-        it.copy(tipo = tipo, formaPagamento = forma, erro = null)
+        val contaPadrao = it.contaSelecionadaId ?: it.contas.firstOrNull()?.id
+        val contaNomePadrao = it.contas.firstOrNull { conta -> conta.id == contaPadrao }?.nome ?: ""
+        it.copy(
+            tipo = tipo,
+            formaPagamento = forma,
+            categoriaSelecionadaId = null,
+            categoriaSelecionadaNome = "",
+            contaSelecionadaId = if (forma == "conta") contaPadrao else it.contaSelecionadaId,
+            contaSelecionadaNome = if (forma == "conta") contaNomePadrao else it.contaSelecionadaNome,
+            cartaoSelecionadoId = if (tipo == "receita") null else it.cartaoSelecionadoId,
+            cartaoSelecionadoNome = if (tipo == "receita") "" else it.cartaoSelecionadoNome,
+            erro = null
+        )
     }
 
     fun onFormaPagamentoChanged(forma: String) =
-        _uiState.update { it.copy(formaPagamento = forma, erro = null) }
+        _uiState.update {
+            val contaPadrao = it.contaSelecionadaId ?: it.contas.firstOrNull()?.id
+            val contaNomePadrao = it.contas.firstOrNull { conta -> conta.id == contaPadrao }?.nome ?: ""
+            val cartaoPadrao = it.cartaoSelecionadoId ?: it.cartoes.firstOrNull()?.id
+            val cartaoNomePadrao = it.cartoes.firstOrNull { cartao -> cartao.id == cartaoPadrao }?.nome ?: ""
+
+            it.copy(
+                formaPagamento = forma,
+                contaSelecionadaId = if (forma == "conta") contaPadrao else null,
+                contaSelecionadaNome = if (forma == "conta") contaNomePadrao else "",
+                cartaoSelecionadoId = if (forma == "cartao") cartaoPadrao else null,
+                cartaoSelecionadoNome = if (forma == "cartao") cartaoNomePadrao else "",
+                erro = null
+            )
+        }
 
     fun onDataChanged(epochMillis: Long) =
         _uiState.update { it.copy(dataCompetencia = epochMillis, dataFormatada = dataParaString(epochMillis)) }
@@ -191,6 +217,9 @@ class AdicionarTransacaoViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, erro = null) }
 
         viewModelScope.launch {
+            val contaId = if (state.formaPagamento == "conta") state.contaSelecionadaId else null
+            val cartaoId = if (state.formaPagamento == "cartao") state.cartaoSelecionadoId else null
+
             val transacao = Transacao(
                 id = transacaoEditandoId ?: 0L,
                 valor = valorDouble,
@@ -199,8 +228,8 @@ class AdicionarTransacaoViewModel @Inject constructor(
                 categoriaId = state.categoriaSelecionadaId,
                 subcategoriaId = null,
                 formaPagamento = state.formaPagamento,
-                cartaoId = state.cartaoSelecionadoId,
-                contaId = state.contaSelecionadaId,
+                cartaoId = cartaoId,
+                contaId = contaId,
                 parcelado = false,
                 numeroParcelas = 1,
                 parcelaAtual = 1,

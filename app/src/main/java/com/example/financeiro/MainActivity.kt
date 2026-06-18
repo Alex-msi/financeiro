@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("saldo_tenho_prefs", Context.MODE_PRIVATE)
         val onboardingCompleto = prefs.getBoolean("onboarding_completo", false)
 
-        if (onboardingCompleto) {
+        if (onboardingCompleto && navController.currentDestination?.id == R.id.onboardingFragment) {
             // S21 definirá a action correta no nav_graph
             navController.navigate(R.id.action_global_dashboard)
         }

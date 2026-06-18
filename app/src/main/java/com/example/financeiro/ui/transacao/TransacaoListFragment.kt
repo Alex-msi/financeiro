@@ -13,6 +13,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.example.financeiro.R
 import com.example.financeiro.databinding.FragmentTransacaoListBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -44,17 +46,31 @@ class TransacaoListFragment : Fragment() {
     private fun setupRecyclerView() {
         adapter = TransacaoAdapter(
             onClique = { item ->
+                confirmarExclusao(item)
                 // Navegação para edição implementada na S17
-                // findNavController().navigate(
-                //     TransacaoListFragmentDirections.actionListToEditar(item.id)
-                // )
             },
-            onDeletar = { id -> viewModel.deletarTransacao(id) }
+            onDeletar = { id -> deletarTransacao(id) }
         )
         binding.recyclerTransacoes.adapter = adapter
         binding.recyclerTransacoes.adicionarSwipeParaDeletar(adapter) { id ->
-            viewModel.deletarTransacao(id)
+            deletarTransacao(id)
         }
+    }
+
+    private fun confirmarExclusao(item: TransacaoItemUi) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Excluir transacao")
+            .setMessage("Deseja excluir \"${item.descricao}\"?")
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Excluir") { _, _ ->
+                deletarTransacao(item.id)
+            }
+            .show()
+    }
+
+    private fun deletarTransacao(id: Long) {
+        viewModel.deletarTransacao(id)
+        Snackbar.make(binding.root, "Transacao excluida", Snackbar.LENGTH_SHORT).show()
     }
 
     private fun setupBotoes() {

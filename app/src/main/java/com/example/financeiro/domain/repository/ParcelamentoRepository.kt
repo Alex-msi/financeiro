@@ -12,5 +12,6 @@ interface ParcelamentoRepository {
     fun getByTransacao(transacaoId: Long): Flow<List<Parcelamento>>
     fun getParcelasFuturasPorMes(inicioMes: Long, fimMes: Long): Flow<List<Parcelamento>>
     fun getParcelamentosEmAberto(): Flow<List<Parcelamento>>
+    fun getSomaSaldoDevedorEmAberto(): Flow<Double?>
     fun getSomaParcelasFuturasPorMes(inicioMes: Long, fimMes: Long): Flow<Double?>
 }

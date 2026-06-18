@@ -39,6 +39,9 @@ class ParcelamentoRepositoryImpl @Inject constructor(
     override fun getParcelamentosEmAberto(): Flow<List<Parcelamento>> =
         localDataSource.parcelamentoDao.getParcelamentosEmAberto().map { list -> list.map { it.toDomain() } }
 
+    override fun getSomaSaldoDevedorEmAberto(): Flow<Double?> =
+        localDataSource.parcelamentoDao.getSomaSaldoDevedorEmAberto()
+
     override fun getSomaParcelasFuturasPorMes(inicioMes: Long, fimMes: Long): Flow<Double?> =
         localDataSource.parcelamentoDao.getSomaParcelasFuturasPorMes(inicioMes, fimMes)
 }
