@@ -7,6 +7,7 @@ import com.example.financeiro.domain.model.Parcelamento
 import com.example.financeiro.domain.repository.ParcelamentoRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,5 +44,24 @@ class ParcelamentoRepositoryImpl @Inject constructor(
         localDataSource.parcelamentoDao.getSomaSaldoDevedorEmAberto()
 
     override fun getSomaParcelasFuturasPorMes(inicioMes: Long, fimMes: Long): Flow<Double?> =
-        localDataSource.parcelamentoDao.getSomaParcelasFuturasPorMes(inicioMes, fimMes)
+        localDataSource.parcelamentoDao.getParcelamentosEmAberto().map { parcelamentos ->
+            parcelamentos.sumOf { parcelamento ->
+                val indiceParcelaNoMes = diferencaEmMeses(parcelamento.dataPrimeiraParcela, inicioMes)
+                if (indiceParcelaNoMes >= parcelamento.parcelasPagas &&
+                    indiceParcelaNoMes in 0 until parcelamento.totalParcelas
+                ) {
+                    parcelamento.valorParcela
+                } else {
+                    0.0
+                }
+            }
+        }
+
+    private fun diferencaEmMeses(inicio: Long, destino: Long): Int {
+        val dataInicio = Calendar.getInstance().apply { timeInMillis = inicio }
+        val dataDestino = Calendar.getInstance().apply { timeInMillis = destino }
+        val anos = dataDestino.get(Calendar.YEAR) - dataInicio.get(Calendar.YEAR)
+        val meses = dataDestino.get(Calendar.MONTH) - dataInicio.get(Calendar.MONTH)
+        return anos * 12 + meses
+    }
 }

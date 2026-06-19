@@ -119,7 +119,8 @@
                     android:id="@+id/auto_complete_categoria"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:focusable="false"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:inputType="none" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -179,7 +180,8 @@
                     android:id="@+id/auto_complete_conta"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:focusable="false"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:inputType="none" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -197,7 +199,8 @@
                     android:id="@+id/auto_complete_cartao"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:focusable="false"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:inputType="none" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -218,6 +221,39 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- ── Botões ─────────────────────────────────────────────────── -->
+            <LinearLayout
+                android:id="@+id/layout_parcelamento"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <CheckBox
+                    android:id="@+id/check_parcelado"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Compra parcelada"
+                    android:textColor="@color/on_surface"
+                    android:layout_marginBottom="8dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/layout_numero_parcelas"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Numero de parcelas"
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edit_numero_parcelas"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:imeOptions="actionNext" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
             <ProgressBar
                 android:id="@+id/progress_bar"
                 android:layout_width="wrap_content"

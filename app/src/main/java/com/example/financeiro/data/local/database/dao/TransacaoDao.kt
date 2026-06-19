@@ -83,6 +83,15 @@ interface TransacaoDao {
     @Query("""
         SELECT SUM(valor) FROM transacoes
         WHERE tipo = 'despesa'
+        AND parcelado = 0
+        AND data_competencia >= :inicio
+        AND data_competencia < :fim
+    """)
+    fun getSomaDespesasNaoParceladasPeriodo(inicio: Long, fim: Long): Flow<Double?>
+
+    @Query("""
+        SELECT SUM(valor) FROM transacoes
+        WHERE tipo = 'despesa'
         AND forma_pagamento = 'cartao'
         AND parcelado = 0
     """)

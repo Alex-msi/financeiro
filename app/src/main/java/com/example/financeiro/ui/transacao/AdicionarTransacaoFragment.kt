@@ -65,6 +65,16 @@ class AdicionarTransacaoFragment : Fragment() {
             viewModel.onObservacaoChanged(text?.toString() ?: "")
         }
 
+        binding.checkParcelado.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.onParceladoChanged(isChecked)
+        }
+        binding.editNumeroParcelas.doAfterTextChanged { text ->
+            viewModel.onNumeroParcelasChanged(text?.toString() ?: "")
+        }
+        binding.autoCompleteConta.setOnClickListener { binding.autoCompleteConta.showDropDown() }
+        binding.autoCompleteCartao.setOnClickListener { binding.autoCompleteCartao.showDropDown() }
+        binding.autoCompleteCategoria.setOnClickListener { binding.autoCompleteCategoria.showDropDown() }
+
         // Data — abre DatePickerDialog
         binding.editData.setOnClickListener { abrirDatePicker() }
         binding.layoutData.setEndIconOnClickListener { abrirDatePicker() }
@@ -119,6 +129,15 @@ class AdicionarTransacaoFragment : Fragment() {
                     // Mostrar/ocultar selects de conta e cartão
                     binding.layoutSelecionarConta.isVisible = state.mostrarConta
                     binding.layoutSelecionarCartao.isVisible = state.mostrarCartao
+                    binding.layoutParcelamento.isVisible = state.mostrarParcelamento
+                    binding.layoutNumeroParcelas.isVisible = state.mostrarNumeroParcelas
+
+                    if (binding.checkParcelado.isChecked != state.parcelado) {
+                        binding.checkParcelado.isChecked = state.parcelado
+                    }
+                    if (binding.editNumeroParcelas.text.toString() != state.numeroParcelas) {
+                        binding.editNumeroParcelas.setText(state.numeroParcelas)
+                    }
 
                     // Dropdown categorias
                     atualizarDropdownCategorias(state)
@@ -168,6 +187,8 @@ class AdicionarTransacaoFragment : Fragment() {
 
         if (state.contaSelecionadaNome.isNotBlank()) {
             binding.autoCompleteConta.setText(state.contaSelecionadaNome, false)
+        } else if (binding.autoCompleteConta.text.isNotBlank()) {
+            binding.autoCompleteConta.setText("", false)
         }
 
         binding.autoCompleteConta.setOnItemClickListener { _, _, position, _ ->
@@ -182,6 +203,8 @@ class AdicionarTransacaoFragment : Fragment() {
 
         if (state.cartaoSelecionadoNome.isNotBlank()) {
             binding.autoCompleteCartao.setText(state.cartaoSelecionadoNome, false)
+        } else if (binding.autoCompleteCartao.text.isNotBlank()) {
+            binding.autoCompleteCartao.setText("", false)
         }
 
         binding.autoCompleteCartao.setOnItemClickListener { _, _, position, _ ->

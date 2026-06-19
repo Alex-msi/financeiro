@@ -34,6 +34,8 @@ data class AdicionarTransacaoUiState(
     val dataFormatada: String = "",
     val formaPagamento: String = "conta",        // "conta", "cartao", "dinheiro"
     val observacao: String = "",
+    val parcelado: Boolean = false,
+    val numeroParcelas: String = "",
 
     // Seleções
     val categoriaSelecionadaId: Long? = null,
@@ -54,6 +56,8 @@ data class AdicionarTransacaoUiState(
 ) {
     val mostrarConta: Boolean get() = formaPagamento == "conta"
     val mostrarCartao: Boolean get() = formaPagamento == "cartao"
+    val mostrarParcelamento: Boolean get() = tipo == "despesa" && formaPagamento == "cartao"
+    val mostrarNumeroParcelas: Boolean get() = mostrarParcelamento && parcelado
     val titulo: String get() = if (isEdicao) "Editar Transação" else "Nova Transação"
 }
 
@@ -92,16 +96,20 @@ class AdicionarTransacaoViewModel @Inject constructor(
             launch {
                 contaRepository.getAllAtivas().collect { lista ->
                     _uiState.update { state ->
-                        val contaId = state.contaSelecionadaId ?: lista.firstOrNull()?.id
+                        val contaId = state.contaSelecionadaId
+                            ?.takeIf { id -> lista.any { it.id == id } }
+                            ?: lista.firstOrNull()?.id
                         val contaNome = lista.firstOrNull { it.id == contaId }?.nome ?: ""
                         state.copy(contas = lista, contaSelecionadaId = contaId, contaSelecionadaNome = contaNome)
                     }
                 }
             }
             launch {
-                cartaoRepository.getAllAtivos().collect { lista ->
+                cartaoRepository.getAll().collect { lista ->
                     _uiState.update { state ->
-                        val cartaoId = state.cartaoSelecionadoId ?: lista.firstOrNull()?.id
+                        val cartaoId = state.cartaoSelecionadoId
+                            ?.takeIf { id -> lista.any { it.id == id } }
+                            ?: lista.firstOrNull()?.id
                         val cartaoNome = lista.firstOrNull { it.id == cartaoId }?.nome ?: ""
                         state.copy(cartoes = lista, cartaoSelecionadoId = cartaoId, cartaoSelecionadoNome = cartaoNome)
                     }
@@ -160,6 +168,8 @@ class AdicionarTransacaoViewModel @Inject constructor(
             contaSelecionadaNome = if (forma == "conta") contaNomePadrao else it.contaSelecionadaNome,
             cartaoSelecionadoId = if (tipo == "receita") null else it.cartaoSelecionadoId,
             cartaoSelecionadoNome = if (tipo == "receita") "" else it.cartaoSelecionadoNome,
+            parcelado = if (tipo == "receita") false else it.parcelado,
+            numeroParcelas = if (tipo == "receita") "" else it.numeroParcelas,
             erro = null
         )
     }
@@ -177,6 +187,8 @@ class AdicionarTransacaoViewModel @Inject constructor(
                 contaSelecionadaNome = if (forma == "conta") contaNomePadrao else "",
                 cartaoSelecionadoId = if (forma == "cartao") cartaoPadrao else null,
                 cartaoSelecionadoNome = if (forma == "cartao") cartaoNomePadrao else "",
+                parcelado = if (forma == "cartao" && it.tipo == "despesa") it.parcelado else false,
+                numeroParcelas = if (forma == "cartao" && it.tipo == "despesa") it.numeroParcelas else "",
                 erro = null
             )
         }
@@ -185,6 +197,20 @@ class AdicionarTransacaoViewModel @Inject constructor(
         _uiState.update { it.copy(dataCompetencia = epochMillis, dataFormatada = dataParaString(epochMillis)) }
 
     fun onObservacaoChanged(obs: String) = _uiState.update { it.copy(observacao = obs) }
+
+    fun onParceladoChanged(parcelado: Boolean) =
+        _uiState.update {
+            it.copy(
+                parcelado = parcelado,
+                numeroParcelas = if (parcelado) it.numeroParcelas else "",
+                erro = null
+            )
+        }
+
+    fun onNumeroParcelasChanged(numeroParcelas: String) =
+        _uiState.update {
+            it.copy(numeroParcelas = numeroParcelas.filter { char -> char.isDigit() }, erro = null)
+        }
 
     fun onCategoriaSelected(categoria: Categoria) =
         _uiState.update { it.copy(categoriaSelecionadaId = categoria.id, categoriaSelecionadaNome = categoria.nome) }
@@ -214,6 +240,12 @@ class AdicionarTransacaoViewModel @Inject constructor(
             return
         }
 
+        val numeroParcelasInt = if (state.parcelado) state.numeroParcelas.toIntOrNull() else 1
+        if (state.parcelado && (numeroParcelasInt == null || numeroParcelasInt <= 1)) {
+            _uiState.update { it.copy(erro = "Informe mais de 1 parcela.") }
+            return
+        }
+
         _uiState.update { it.copy(isLoading = true, erro = null) }
 
         viewModelScope.launch {
@@ -230,8 +262,8 @@ class AdicionarTransacaoViewModel @Inject constructor(
                 formaPagamento = state.formaPagamento,
                 cartaoId = cartaoId,
                 contaId = contaId,
-                parcelado = false,
-                numeroParcelas = 1,
+                parcelado = state.parcelado,
+                numeroParcelas = numeroParcelasInt ?: 1,
                 parcelaAtual = 1,
                 observacao = state.observacao.ifBlank { null },
                 criadoEm = System.currentTimeMillis()
