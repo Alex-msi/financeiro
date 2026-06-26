@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.financeiro.domain.model.Cartao
 import com.example.financeiro.domain.model.Categoria
 import com.example.financeiro.domain.model.Conta
+import com.example.financeiro.domain.model.Subcategoria
 import com.example.financeiro.domain.repository.CartaoRepository
 import com.example.financeiro.domain.repository.CategoriaRepository
 import com.example.financeiro.domain.repository.ContaRepository
+import com.example.financeiro.domain.repository.ParcelamentoRepository
 import com.example.financeiro.domain.repository.TransacaoRepository
 import com.example.financeiro.domain.usecase.SalvarTransacaoUseCase
 import com.example.financeiro.domain.model.Transacao
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.UUID
 import javax.inject.Inject
 
 // ─── UiState ─────────────────────────────────────────────────────────────────
@@ -36,10 +39,17 @@ data class AdicionarTransacaoUiState(
     val observacao: String = "",
     val parcelado: Boolean = false,
     val numeroParcelas: String = "",
+    val parcelasPagas: String = "",
+    val recorrente: Boolean = false,
+    val quantidadeRecorrencias: String = "",
+    val recorrenciaId: String? = null,
+    val recorrenciaIndice: Int? = null,
 
     // Seleções
     val categoriaSelecionadaId: Long? = null,
     val categoriaSelecionadaNome: String = "",
+    val subcategoriaSelecionadaId: Long? = null,
+    val subcategoriaSelecionadaNome: String = "",
     val contaSelecionadaId: Long? = null,
     val contaSelecionadaNome: String = "",
     val cartaoSelecionadoId: Long? = null,
@@ -47,6 +57,7 @@ data class AdicionarTransacaoUiState(
 
     // Listas para os dropdowns
     val categorias: List<Categoria> = emptyList(),
+    val subcategorias: List<Subcategoria> = emptyList(),
     val contas: List<Conta> = emptyList(),
     val cartoes: List<Cartao> = emptyList(),
 
@@ -58,7 +69,16 @@ data class AdicionarTransacaoUiState(
     val mostrarCartao: Boolean get() = formaPagamento == "cartao"
     val mostrarParcelamento: Boolean get() = tipo == "despesa" && formaPagamento == "cartao"
     val mostrarNumeroParcelas: Boolean get() = mostrarParcelamento && parcelado
+    val mostrarParcelasPagas: Boolean get() = isEdicao && mostrarNumeroParcelas
+    val mostrarRecorrencia: Boolean get() = !isEdicao && !parcelado
+    val mostrarQuantidadeRecorrencias: Boolean get() = mostrarRecorrencia && recorrente
+    val podeEscolherEscopoRecorrencia: Boolean get() = isEdicao && recorrenciaId != null
     val titulo: String get() = if (isEdicao) "Editar Transação" else "Nova Transação"
+}
+
+enum class EscopoEdicaoRecorrencia {
+    SOMENTE_ESTA,
+    ESTA_E_PROXIMAS
 }
 
 // ─── ViewModel ───────────────────────────────────────────────────────────────
@@ -69,6 +89,7 @@ class AdicionarTransacaoViewModel @Inject constructor(
     private val transacaoRepository: TransacaoRepository,
     private val categoriaRepository: CategoriaRepository,
     private val contaRepository: ContaRepository,
+    private val parcelamentoRepository: ParcelamentoRepository,
     private val cartaoRepository: CartaoRepository
 ) : ViewModel() {
 
@@ -79,6 +100,8 @@ class AdicionarTransacaoViewModel @Inject constructor(
 
     // ID da transação sendo editada (null = nova)
     private var transacaoEditandoId: Long? = null
+    private var transacaoCriadoEm: Long? = null
+    private var dataOriginalEdicao: Long? = null
 
     init {
         carregarListas()
@@ -90,7 +113,20 @@ class AdicionarTransacaoViewModel @Inject constructor(
         viewModelScope.launch {
             launch {
                 categoriaRepository.getAll().collect { lista ->
-                    _uiState.update { it.copy(categorias = lista) }
+                    _uiState.update { state ->
+                        val categoriaNome = lista.firstOrNull { it.id == state.categoriaSelecionadaId }?.nome
+                            ?: state.categoriaSelecionadaNome
+                        state.copy(categorias = lista, categoriaSelecionadaNome = categoriaNome)
+                    }
+                }
+            }
+            launch {
+                categoriaRepository.getAllSubcategorias().collect { lista ->
+                    _uiState.update { state ->
+                        val nome = lista.firstOrNull { it.id == state.subcategoriaSelecionadaId }?.nome
+                            ?: state.subcategoriaSelecionadaNome
+                        state.copy(subcategorias = lista, subcategoriaSelecionadaNome = nome)
+                    }
                 }
             }
             launch {
@@ -129,7 +165,15 @@ class AdicionarTransacaoViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val transacao = transacaoRepository.getById(id) ?: return@launch
+                val parcelamento = parcelamentoRepository.getByTransacao(id).first().firstOrNull()
                 _uiState.update { state ->
+                    val categoriaNome = state.categorias.firstOrNull { it.id == transacao.categoriaId }?.nome ?: ""
+                    val subcategoriaNome =
+                        state.subcategorias.firstOrNull { it.id == transacao.subcategoriaId }?.nome ?: ""
+                    val contaNome = state.contas.firstOrNull { it.id == transacao.contaId }?.nome ?: ""
+                    val cartaoNome = state.cartoes.firstOrNull { it.id == transacao.cartaoId }?.nome ?: ""
+                    transacaoCriadoEm = transacao.criadoEm
+                    dataOriginalEdicao = transacao.dataCompetencia
                     state.copy(
                         isLoading = false,
                         isEdicao = true,
@@ -140,8 +184,20 @@ class AdicionarTransacaoViewModel @Inject constructor(
                         formaPagamento = transacao.formaPagamento,
                         observacao = transacao.observacao ?: "",
                         categoriaSelecionadaId = transacao.categoriaId,
+                        categoriaSelecionadaNome = categoriaNome,
+                        subcategoriaSelecionadaId = transacao.subcategoriaId,
+                        subcategoriaSelecionadaNome = subcategoriaNome,
                         contaSelecionadaId = transacao.contaId,
-                        cartaoSelecionadoId = transacao.cartaoId
+                        contaSelecionadaNome = contaNome,
+                        cartaoSelecionadoId = transacao.cartaoId,
+                        cartaoSelecionadoNome = cartaoNome,
+                        parcelado = transacao.parcelado,
+                        numeroParcelas = if (transacao.parcelado) transacao.numeroParcelas.toString() else "",
+                        parcelasPagas = parcelamento?.parcelasPagas?.toString() ?: "",
+                        recorrente = false,
+                        quantidadeRecorrencias = "",
+                        recorrenciaId = transacao.recorrenciaId,
+                        recorrenciaIndice = transacao.recorrenciaIndice
                     )
                 }
             } catch (e: Exception) {
@@ -164,12 +220,15 @@ class AdicionarTransacaoViewModel @Inject constructor(
             formaPagamento = forma,
             categoriaSelecionadaId = null,
             categoriaSelecionadaNome = "",
+            subcategoriaSelecionadaId = null,
+            subcategoriaSelecionadaNome = "",
             contaSelecionadaId = if (forma == "conta") contaPadrao else it.contaSelecionadaId,
             contaSelecionadaNome = if (forma == "conta") contaNomePadrao else it.contaSelecionadaNome,
             cartaoSelecionadoId = if (tipo == "receita") null else it.cartaoSelecionadoId,
             cartaoSelecionadoNome = if (tipo == "receita") "" else it.cartaoSelecionadoNome,
             parcelado = if (tipo == "receita") false else it.parcelado,
             numeroParcelas = if (tipo == "receita") "" else it.numeroParcelas,
+            recorrente = if (tipo == "receita") it.recorrente else it.recorrente,
             erro = null
         )
     }
@@ -189,6 +248,7 @@ class AdicionarTransacaoViewModel @Inject constructor(
                 cartaoSelecionadoNome = if (forma == "cartao") cartaoNomePadrao else "",
                 parcelado = if (forma == "cartao" && it.tipo == "despesa") it.parcelado else false,
                 numeroParcelas = if (forma == "cartao" && it.tipo == "despesa") it.numeroParcelas else "",
+                recorrente = if (forma == "cartao" && it.parcelado) false else it.recorrente,
                 erro = null
             )
         }
@@ -203,6 +263,18 @@ class AdicionarTransacaoViewModel @Inject constructor(
             it.copy(
                 parcelado = parcelado,
                 numeroParcelas = if (parcelado) it.numeroParcelas else "",
+                parcelasPagas = if (parcelado) it.parcelasPagas else "",
+                recorrente = if (parcelado) false else it.recorrente,
+                quantidadeRecorrencias = if (parcelado) "" else it.quantidadeRecorrencias,
+                erro = null
+            )
+        }
+
+    fun onRecorrenteChanged(recorrente: Boolean) =
+        _uiState.update {
+            it.copy(
+                recorrente = recorrente,
+                quantidadeRecorrencias = if (recorrente) it.quantidadeRecorrencias else "",
                 erro = null
             )
         }
@@ -212,8 +284,33 @@ class AdicionarTransacaoViewModel @Inject constructor(
             it.copy(numeroParcelas = numeroParcelas.filter { char -> char.isDigit() }, erro = null)
         }
 
+    fun onParcelasPagasChanged(parcelasPagas: String) =
+        _uiState.update {
+            it.copy(parcelasPagas = parcelasPagas.filter { char -> char.isDigit() }, erro = null)
+        }
+
+    fun onQuantidadeRecorrenciasChanged(quantidade: String) =
+        _uiState.update {
+            it.copy(quantidadeRecorrencias = quantidade.filter { char -> char.isDigit() }, erro = null)
+        }
+
     fun onCategoriaSelected(categoria: Categoria) =
-        _uiState.update { it.copy(categoriaSelecionadaId = categoria.id, categoriaSelecionadaNome = categoria.nome) }
+        _uiState.update {
+            it.copy(
+                categoriaSelecionadaId = categoria.id,
+                categoriaSelecionadaNome = categoria.nome,
+                subcategoriaSelecionadaId = null,
+                subcategoriaSelecionadaNome = ""
+            )
+        }
+
+    fun onSubcategoriaSelected(subcategoria: Subcategoria) =
+        _uiState.update {
+            it.copy(
+                subcategoriaSelecionadaId = subcategoria.id,
+                subcategoriaSelecionadaNome = subcategoria.nome
+            )
+        }
 
     fun onContaSelected(conta: Conta) =
         _uiState.update { it.copy(contaSelecionadaId = conta.id, contaSelecionadaNome = conta.nome) }
@@ -223,7 +320,7 @@ class AdicionarTransacaoViewModel @Inject constructor(
 
     // ─── Salvar ───────────────────────────────────────────────────────────────
 
-    fun salvar() {
+    fun salvar(escopoRecorrencia: EscopoEdicaoRecorrencia = EscopoEdicaoRecorrencia.SOMENTE_ESTA) {
         val state = _uiState.value
         val valorDouble = state.valor.replace(",", ".").toDoubleOrNull()
 
@@ -245,6 +342,24 @@ class AdicionarTransacaoViewModel @Inject constructor(
             _uiState.update { it.copy(erro = "Informe mais de 1 parcela.") }
             return
         }
+        val parcelasPagasInt = if (state.mostrarParcelasPagas) {
+            state.parcelasPagas.toIntOrNull() ?: 0
+        } else {
+            0
+        }
+        if (state.mostrarParcelasPagas && numeroParcelasInt != null && parcelasPagasInt > numeroParcelasInt) {
+            _uiState.update { it.copy(erro = "Parcelas pagas não pode ser maior que o total.") }
+            return
+        }
+        val quantidadeRecorrenciasInt = if (state.recorrente) {
+            state.quantidadeRecorrencias.toIntOrNull()
+        } else {
+            1
+        }
+        if (state.recorrente && (quantidadeRecorrenciasInt == null || quantidadeRecorrenciasInt <= 1)) {
+            _uiState.update { it.copy(erro = "Informe pelo menos 2 meses para repetir.") }
+            return
+        }
 
         _uiState.update { it.copy(isLoading = true, erro = null) }
 
@@ -258,7 +373,7 @@ class AdicionarTransacaoViewModel @Inject constructor(
                 dataCompetencia = state.dataCompetencia,
                 tipo = state.tipo,
                 categoriaId = state.categoriaSelecionadaId,
-                subcategoriaId = null,
+                subcategoriaId = state.subcategoriaSelecionadaId,
                 formaPagamento = state.formaPagamento,
                 cartaoId = cartaoId,
                 contaId = contaId,
@@ -266,18 +381,85 @@ class AdicionarTransacaoViewModel @Inject constructor(
                 numeroParcelas = numeroParcelasInt ?: 1,
                 parcelaAtual = 1,
                 observacao = state.observacao.ifBlank { null },
-                criadoEm = System.currentTimeMillis()
+                recorrenciaId = state.recorrenciaId,
+                recorrenciaIndice = state.recorrenciaIndice,
+                criadoEm = transacaoCriadoEm ?: System.currentTimeMillis()
             )
 
-            val resultado = salvarTransacaoUseCase(transacao)
+            val resultado = if (state.recorrente && transacaoEditandoId == null) {
+                salvarRecorrencias(transacao, quantidadeRecorrenciasInt ?: 1)
+            } else if (
+                escopoRecorrencia == EscopoEdicaoRecorrencia.ESTA_E_PROXIMAS &&
+                transacao.recorrenciaId != null &&
+                transacao.recorrenciaIndice != null
+            ) {
+                salvarEstaEProximas(transacao)
+            } else {
+                salvarTransacaoUseCase(transacao)
+            }
             resultado.fold(
-                onSuccess = { _uiState.update { it.copy(isLoading = false, salvoCom = true) } },
+                onSuccess = {
+                    atualizarParcelasPagasSeNecessario(transacao.id, parcelasPagasInt)
+                    _uiState.update { it.copy(isLoading = false, salvoCom = true) }
+                },
                 onFailure = { e -> _uiState.update { it.copy(isLoading = false, erro = e.message ?: "Erro ao salvar.") } }
             )
         }
     }
 
     fun limparErro() = _uiState.update { it.copy(erro = null) }
+
+    private suspend fun salvarRecorrencias(transacao: Transacao, quantidade: Int): Result<Unit> = runCatching {
+        val recorrenciaId = UUID.randomUUID().toString()
+        for (indice in 0 until quantidade) {
+            salvarTransacaoUseCase(
+                transacao.copy(
+                    id = 0L,
+                    dataCompetencia = adicionarMeses(transacao.dataCompetencia, indice),
+                    recorrenciaId = recorrenciaId,
+                    recorrenciaIndice = indice,
+                    criadoEm = System.currentTimeMillis() + indice
+                )
+            ).getOrThrow()
+        }
+    }
+
+    private suspend fun salvarEstaEProximas(transacao: Transacao): Result<Unit> = runCatching {
+        val recorrenciaId = transacao.recorrenciaId ?: return@runCatching
+        val indiceBase = transacao.recorrenciaIndice ?: return@runCatching
+        val transacoesDaSerie = transacaoRepository.getAll().first()
+            .filter { it.recorrenciaId == recorrenciaId }
+            .filter { (it.recorrenciaIndice ?: -1) >= indiceBase }
+
+        transacoesDaSerie.forEach { ocorrencia ->
+            val indiceOcorrencia = ocorrencia.recorrenciaIndice ?: indiceBase
+            val mesesDepois = indiceOcorrencia - indiceBase
+            salvarTransacaoUseCase(
+                ocorrencia.copy(
+                    valor = transacao.valor,
+                    dataCompetencia = adicionarMeses(transacao.dataCompetencia, mesesDepois),
+                    tipo = transacao.tipo,
+                    categoriaId = transacao.categoriaId,
+                    subcategoriaId = transacao.subcategoriaId,
+                    formaPagamento = transacao.formaPagamento,
+                    cartaoId = transacao.cartaoId,
+                    contaId = transacao.contaId,
+                    parcelado = transacao.parcelado,
+                    numeroParcelas = transacao.numeroParcelas,
+                    parcelaAtual = transacao.parcelaAtual,
+                    observacao = transacao.observacao
+                )
+            ).getOrThrow()
+        }
+    }
+
+    private suspend fun atualizarParcelasPagasSeNecessario(transacaoId: Long, parcelasPagas: Int) {
+        if (transacaoId <= 0) return
+        val parcelamento = parcelamentoRepository.getByTransacao(transacaoId).first().firstOrNull() ?: return
+        parcelamentoRepository.update(
+            parcelamento.copy(parcelasPagas = parcelasPagas.coerceIn(0, parcelamento.totalParcelas))
+        )
+    }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -290,5 +472,11 @@ class AdicionarTransacaoViewModel @Inject constructor(
                 cal.get(Calendar.YEAR)
             )
         }
+
+        fun adicionarMeses(epochMillis: Long, meses: Int): Long =
+            Calendar.getInstance().apply {
+                timeInMillis = epochMillis
+                add(Calendar.MONTH, meses)
+            }.timeInMillis
     }
 }

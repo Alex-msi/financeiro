@@ -14,5 +14,7 @@ data class Transacao(
     val numeroParcelas: Int = 1,
     val parcelaAtual: Int = 1,
     val observacao: String?,
+    val recorrenciaId: String? = null,
+    val recorrenciaIndice: Int? = null,
     val criadoEm: Long
 )

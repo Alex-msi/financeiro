@@ -2,6 +2,8 @@ package com.example.financeiro.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.financeiro.data.local.database.AppDatabase
 import com.example.financeiro.data.local.database.dao.*
 import dagger.Module
@@ -15,6 +17,14 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE transacoes ADD COLUMN recorrencia_id TEXT")
+            database.execSQL("ALTER TABLE transacoes ADD COLUMN recorrencia_indice INTEGER")
+            database.execSQL("CREATE INDEX IF NOT EXISTS index_transacoes_recorrencia_id ON transacoes(recorrencia_id)")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
@@ -22,7 +32,7 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "saldo_tenho.db"
-        ).build()
+        ).addMigrations(MIGRATION_1_2).build()
 
     @Provides
     fun provideContaDao(db: AppDatabase): ContaDao = db.contaDao()

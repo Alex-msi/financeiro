@@ -17,6 +17,8 @@ fun TransacaoEntity.toDomain() = Transacao(
     numeroParcelas = numeroParcelas,
     parcelaAtual = parcelaAtual,
     observacao = observacao,
+    recorrenciaId = recorrenciaId,
+    recorrenciaIndice = recorrenciaIndice,
     criadoEm = criadoEm
 )
 
@@ -34,5 +36,7 @@ fun Transacao.toEntity() = TransacaoEntity(
     numeroParcelas = numeroParcelas,
     parcelaAtual = parcelaAtual,
     observacao = observacao,
+    recorrenciaId = recorrenciaId,
+    recorrenciaIndice = recorrenciaIndice,
     criadoEm = criadoEm
 )

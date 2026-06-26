@@ -30,6 +30,22 @@
         <action
             android:id="@+id/action_dashboard_to_transacoes"
             app:destination="@id/transacaoListFragment" />
+
+        <action
+            android:id="@+id/action_dashboard_to_adicionar_transacao"
+            app:destination="@id/adicionarTransacaoFragment" />
+
+        <action
+            android:id="@+id/action_dashboard_to_carteira"
+            app:destination="@id/carteiraFragment" />
+
+        <action
+            android:id="@+id/action_dashboard_to_categorias"
+            app:destination="@id/categoriasFragment" />
+
+        <action
+            android:id="@+id/action_dashboard_to_relatorios"
+            app:destination="@id/relatoriosFragment" />
     </fragment>
 
     <fragment
@@ -53,5 +69,49 @@
             app:argType="long"
             android:defaultValue="-1L" />
     </fragment>
+
+    <fragment
+        android:id="@+id/carteiraFragment"
+        android:name="com.example.financeiro.ui.carteira.CarteiraFragment"
+        android:label="Contas e cartoes">
+
+        <action
+            android:id="@+id/action_carteira_to_fatura"
+            app:destination="@id/faturaCartaoFragment" />
+
+        <action
+            android:id="@+id/action_carteira_to_extrato"
+            app:destination="@id/extratoContaFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/faturaCartaoFragment"
+        android:name="com.example.financeiro.ui.fatura.FaturaCartaoFragment"
+        android:label="Fatura do cartao">
+
+        <argument
+            android:name="cartaoId"
+            app:argType="long" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/extratoContaFragment"
+        android:name="com.example.financeiro.ui.extrato.ExtratoContaFragment"
+        android:label="Extrato da conta">
+
+        <argument
+            android:name="contaId"
+            app:argType="long" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/categoriasFragment"
+        android:name="com.example.financeiro.ui.categoria.CategoriasFragment"
+        android:label="Categorias" />
+
+    <fragment
+        android:id="@+id/relatoriosFragment"
+        android:name="com.example.financeiro.ui.relatorio.RelatoriosFragment"
+        android:label="Relatorios" />
 
 </navigation>

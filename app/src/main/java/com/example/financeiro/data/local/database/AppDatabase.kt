@@ -24,7 +24,7 @@ import com.example.financeiro.data.local.database.entity.TransacaoEntity
         TransacaoEntity::class,
         ParcelamentoEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

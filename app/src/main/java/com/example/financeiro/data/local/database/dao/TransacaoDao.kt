@@ -97,6 +97,13 @@ interface TransacaoDao {
     """)
     fun getSomaDespesasCartaoNaoParceladas(): Flow<Double?>
 
+    @Query("""
+        SELECT SUM(CASE WHEN tipo = 'receita' THEN valor ELSE -valor END)
+        FROM transacoes
+        WHERE forma_pagamento = 'conta'
+    """)
+    fun getSaldoTransacoesConta(): Flow<Double?>
+
     // Saldo do período (receitas - despesas)
     @Query("""
         SELECT SUM(CASE WHEN tipo = 'receita' THEN valor ELSE -valor END)

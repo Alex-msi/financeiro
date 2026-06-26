@@ -6,51 +6,101 @@
     android:layout_height="match_parent"
     android:background="@color/background">
 
-    <!-- Navegação de mês -->
     <LinearLayout
         android:id="@+id/layout_nav_mes"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:padding="8dp"
         android:background="@color/surface"
-        app:layout_constraintTop_toTopOf="parent">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_mes_anterior"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:padding="0dp"
             android:text="‹"
-            android:textSize="22sp"
             android:textColor="@color/on_surface"
-            android:padding="0dp" />
+            android:textSize="22sp" />
 
         <TextView
             android:id="@+id/tv_label_mes"
             android:layout_width="0dp"
-            android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Abril 2025"
-            android:textSize="16sp"
-            android:textColor="@color/on_background"
+            android:layout_weight="1"
             android:fontFamily="sans-serif-medium"
-            android:gravity="center" />
+            android:gravity="center"
+            android:text="Abril 2025"
+            android:textColor="@color/on_background"
+            android:textSize="16sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_proximo_mes"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:padding="0dp"
             android:text="›"
-            android:textSize="22sp"
             android:textColor="@color/on_surface"
-            android:padding="0dp" />
-
+            android:textSize="22sp" />
     </LinearLayout>
 
-    <!-- Loading -->
+    <HorizontalScrollView
+        android:id="@+id/scroll_filtros"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="56dp"
+        android:background="@color/background"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/toggle_filtros"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            app:checkedButton="@id/btn_filtro_todos"
+            app:selectionRequired="true"
+            app:singleSelection="true">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_filtro_todos"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="Todos"
+                android:textAllCaps="false" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_filtro_conta"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="Conta"
+                android:textAllCaps="false" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_filtro_cartao"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="Cartão"
+                android:textAllCaps="false" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_filtro_dinheiro"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="Dinheiro"
+                android:textAllCaps="false" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+    </HorizontalScrollView>
+
     <ProgressBar
         android:id="@+id/progress_bar"
         android:layout_width="wrap_content"
@@ -58,29 +108,26 @@
         android:layout_gravity="center"
         android:visibility="gone" />
 
-    <!-- Empty state -->
     <TextView
         android:id="@+id/tv_empty_state"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:text="Nenhuma transação neste mês."
-        android:textSize="14sp"
         android:textColor="@color/on_surface_variant"
+        android:textSize="14sp"
         android:visibility="gone" />
 
-    <!-- Lista -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_transacoes"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="56dp"
+        android:layout_marginTop="108dp"
+        android:clipToPadding="false"
         android:paddingTop="8dp"
         android:paddingBottom="80dp"
-        android:clipToPadding="false"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
-    <!-- FAB adicionar -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_adicionar_transacao"
         android:layout_width="wrap_content"
@@ -91,5 +138,4 @@
         android:src="@android:drawable/ic_input_add"
         app:backgroundTint="@color/primary"
         app:tint="@color/on_primary" />
-
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

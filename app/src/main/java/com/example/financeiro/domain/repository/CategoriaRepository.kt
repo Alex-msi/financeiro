@@ -16,6 +16,7 @@ interface CategoriaRepository {
     suspend fun updateSubcategoria(subcategoria: Subcategoria)
     suspend fun deleteSubcategoria(subcategoria: Subcategoria)
     suspend fun getSubcategoriaById(id: Long): Subcategoria?
+    fun getAllSubcategorias(): Flow<List<Subcategoria>>
     fun getSubcategoriasByCategoriaId(categoriaId: Long): Flow<List<Subcategoria>>
     fun getSubcategoriasAtivasByCategoriaId(categoriaId: Long): Flow<List<Subcategoria>>
 }

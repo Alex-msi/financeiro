@@ -54,6 +54,9 @@ class TransacaoRepositoryImpl @Inject constructor(
     override fun getSomaDespesasCartaoNaoParceladas(): Flow<Double?> =
         localDataSource.transacaoDao.getSomaDespesasCartaoNaoParceladas()
 
+    override fun getSaldoTransacoesConta(): Flow<Double?> =
+        localDataSource.transacaoDao.getSaldoTransacoesConta()
+
     override fun getSaldoPeriodo(inicio: Long, fim: Long): Flow<Double?> =
         localDataSource.transacaoDao.getSaldoPeriodo(inicio, fim)
 }

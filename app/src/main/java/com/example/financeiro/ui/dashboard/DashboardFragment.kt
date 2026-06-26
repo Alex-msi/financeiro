@@ -1,10 +1,13 @@
 package com.example.financeiro.ui.dashboard
 
 import android.os.Bundle
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import androidx.core.content.ContextCompat
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -13,6 +16,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.example.financeiro.R
 import com.example.financeiro.databinding.FragmentDashboardBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -23,6 +28,7 @@ class DashboardFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: DashboardViewModel by viewModels()
+    private lateinit var faturaAdapter: FaturaCartaoAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -35,8 +41,17 @@ class DashboardFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setupFaturas()
         setupBotoes()
         observeUiState()
+        observeEventos()
+    }
+
+    private fun setupFaturas() {
+        faturaAdapter = FaturaCartaoAdapter { item ->
+            confirmarPagamentoFatura(item)
+        }
+        binding.recyclerFaturas.adapter = faturaAdapter
     }
 
     private fun setupBotoes() {
@@ -46,8 +61,24 @@ class DashboardFragment : Fragment() {
         binding.btnProximoMes.setOnClickListener {
             viewModel.irParaProximoMes()
         }
+        binding.fabAdicionarTransacao.setOnClickListener {
+            findNavController().navigate(R.id.action_dashboard_to_adicionar_transacao)
+        }
         binding.btnVerTransacoes.setOnClickListener {
-            findNavController().navigate(R.id.action_dashboard_to_transacoes)
+            val state = viewModel.uiState.value
+            findNavController().navigate(
+                R.id.action_dashboard_to_transacoes,
+                bundleOf("mes" to state.mesAtual, "ano" to state.anoAtual)
+            )
+        }
+        binding.btnContasCartoes.setOnClickListener {
+            findNavController().navigate(R.id.action_dashboard_to_carteira)
+        }
+        binding.btnCategorias.setOnClickListener {
+            findNavController().navigate(R.id.action_dashboard_to_categorias)
+        }
+        binding.btnRelatorios.setOnClickListener {
+            findNavController().navigate(R.id.action_dashboard_to_relatorios)
         }
     }
 
@@ -64,28 +95,102 @@ class DashboardFragment : Fragment() {
                     binding.progressBar.visibility = View.GONE
                     binding.contentGroup.visibility = View.VISIBLE
 
-                    // Saldo Tenho
                     binding.tvSaldoTenho.text = formatarValor(state.saldoTenho)
-
-                    // Navegação de mês
+                    binding.tvSaldoAtual.text = formatarValor(state.saldoAtual)
                     binding.tvLabelMes.text = state.labelMes
                     binding.btnProximoMes.isEnabled = state.podeIrParaProximoMes
                     binding.btnProximoMes.alpha = if (state.podeIrParaProximoMes) 1f else 0.3f
 
-                    // Cards do mês
                     binding.tvReceitas.text = formatarValor(state.totalReceitas)
                     binding.tvDespesas.text = formatarValor(state.totalDespesas)
                     binding.tvSaldoMes.text = formatarValor(state.saldoMes)
 
-                    // Cor do saldo do mês: verde se positivo, vermelho se negativo
-                    val corSaldo = if (state.saldoMes >= 0)
+                    val corSaldo = if (state.saldoMes >= 0) {
                         ContextCompat.getColor(requireContext(), R.color.receita)
-                    else
+                    } else {
                         ContextCompat.getColor(requireContext(), R.color.despesa)
+                    }
                     binding.tvSaldoMes.setTextColor(corSaldo)
+
+                    binding.layoutFaturas.visibility =
+                        if (state.faturas.isEmpty()) View.GONE else View.VISIBLE
+                    faturaAdapter.submitList(state.faturas)
                 }
             }
         }
+    }
+
+    private fun observeEventos() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.eventos.collect { evento ->
+                    when (evento) {
+                        is DashboardEvento.FaturaPaga -> {
+                            val fatura = viewModel.uiState.value.faturas.firstOrNull {
+                                evento.cartaoId == it.cartaoId
+                            }
+                            val mensagem = if (fatura != null && evento.valor + 0.009 >= fatura.valor) {
+                                "Fatura quitada: ${formatarValor(evento.valor)}"
+                            } else {
+                                "Pagamento registrado: ${formatarValor(evento.valor)}"
+                            }
+                            Snackbar.make(
+                                binding.root,
+                                mensagem,
+                                Snackbar.LENGTH_SHORT
+                            ).show()
+                        }
+
+                        is DashboardEvento.Erro -> {
+                            Snackbar.make(binding.root, evento.mensagem, Snackbar.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun confirmarPagamentoFatura(item: FaturaCartaoUi) {
+        val state = viewModel.uiState.value
+        val opcoes = state.contasPagamento.map { it.nome } + "Dinheiro"
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Pagar ${item.valorFormatado}")
+            .setItems(opcoes.toTypedArray()) { _, which ->
+                val conta = state.contasPagamento.getOrNull(which)
+                if (conta != null) {
+                    confirmarValorPagamento(item.cartaoId, item.valor, "conta", conta.id)
+                } else {
+                    confirmarValorPagamento(item.cartaoId, item.valor, "dinheiro", null)
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun confirmarValorPagamento(
+        cartaoId: Long,
+        valorAberto: Double,
+        formaPagamento: String,
+        contaId: Long?
+    ) {
+        val campoValor = EditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setText("%.2f".format(valorAberto).replace(",", "."))
+            selectAll()
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Valor do pagamento")
+            .setView(campoValor)
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Pagar") { _, _ ->
+                val valor = campoValor.text?.toString()?.replace(",", ".")?.toDoubleOrNull()
+                if (valor == null || valor <= 0.0) {
+                    Snackbar.make(binding.root, "Informe um valor válido.", Snackbar.LENGTH_SHORT).show()
+                } else {
+                    viewModel.pagarFatura(cartaoId, formaPagamento, contaId, valor)
+                }
+            }
+            .show()
     }
 
     private fun formatarValor(valor: Double): String {

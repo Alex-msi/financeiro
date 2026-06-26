@@ -106,6 +106,18 @@
                     android:layout_marginStart="8dp" />
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/tv_parcelamento"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Parcelado: 3x de R$ 0,00"
+                android:textSize="12sp"
+                android:textColor="@color/on_surface_variant"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:visibility="gone" />
+
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

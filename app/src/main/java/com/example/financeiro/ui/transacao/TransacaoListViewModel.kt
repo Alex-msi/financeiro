@@ -2,28 +2,28 @@ package com.example.financeiro.ui.transacao
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.financeiro.domain.finance.RegrasFinanceiras
+import com.example.financeiro.domain.model.Parcelamento
 import com.example.financeiro.domain.model.Transacao
 import com.example.financeiro.domain.repository.CategoriaRepository
+import com.example.financeiro.domain.repository.ParcelamentoRepository
 import com.example.financeiro.domain.repository.TransacaoRepository
-import com.example.financeiro.domain.usecase.GetTransacoesMesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
 
-// ─── UiState ─────────────────────────────────────────────────────────────────
-
 data class TransacaoListUiState(
     val isLoading: Boolean = true,
     val transacoes: List<TransacaoItemUi> = emptyList(),
+    val filtroAtual: FiltroTransacao = FiltroTransacao.TODOS,
     val mesAtual: Int = Calendar.getInstance().get(Calendar.MONTH),
     val anoAtual: Int = Calendar.getInstance().get(Calendar.YEAR),
     val erro: String? = null
@@ -31,11 +31,7 @@ data class TransacaoListUiState(
     val labelMes: String get() = "${nomeMes(mesAtual)} $anoAtual"
     val isEmpty: Boolean get() = !isLoading && transacoes.isEmpty()
 
-    val podeIrParaProximoMes: Boolean get() {
-        val agora = Calendar.getInstance()
-        return anoAtual < agora.get(Calendar.YEAR) ||
-                (anoAtual == agora.get(Calendar.YEAR) && mesAtual < agora.get(Calendar.MONTH))
-    }
+    val podeIrParaProximoMes: Boolean get() = true
 
     companion object {
         fun nomeMes(mes: Int): String = listOf(
@@ -45,32 +41,36 @@ data class TransacaoListUiState(
     }
 }
 
-/**
- * Modelo de UI de cada linha da lista — já com strings formatadas
- * para evitar lógica de formatação no Adapter.
- */
-data class TransacaoItemUi(
-    val id: Long,
-    val descricao: String,           // observacao ou fallback "Sem descrição"
-    val valorFormatado: String,      // "R$ 150,00"
-    val dataFormatada: String,       // "15/04/2025"
-    val categoriaNome: String,       // nome da categoria ou "Sem categoria"
-    val tipo: String,                // "receita" ou "despesa"
-    val isReceita: Boolean
-)
+enum class FiltroTransacao(val formaPagamento: String?) {
+    TODOS(null),
+    CONTA("conta"),
+    CARTAO("cartao"),
+    DINHEIRO("dinheiro")
+}
 
-// ─── ViewModel ───────────────────────────────────────────────────────────────
+data class TransacaoItemUi(
+    val itemKey: String,
+    val id: Long,
+    val descricao: String,
+    val valorFormatado: String,
+    val dataFormatada: String,
+    val categoriaNome: String,
+    val tipo: String,
+    val formaPagamento: String,
+    val isReceita: Boolean,
+    val parcelamentoInfo: String? = null,
+    val ordenacao: Long = 0L
+)
 
 @HiltViewModel
 class TransacaoListViewModel @Inject constructor(
-    private val getTransacoesMesUseCase: GetTransacoesMesUseCase,
     private val transacaoRepository: TransacaoRepository,
+    private val parcelamentoRepository: ParcelamentoRepository,
     private val categoriaRepository: CategoriaRepository
 ) : ViewModel() {
 
     private val _mesSelecionado = MutableStateFlow(mesAnoAtual())
-
-    // Mapa categoriaId → nome, atualizado reativamente
+    private val _filtroSelecionado = MutableStateFlow(FiltroTransacao.TODOS)
     private val _categoriasMap = MutableStateFlow<Map<Long, String>>(emptyMap())
 
     init {
@@ -87,18 +87,29 @@ class TransacaoListViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<TransacaoListUiState> = combine(
-        _mesSelecionado.flatMapLatest { (mes, ano) ->
-            val (inicio, fim) = intervaloMes(mes, ano)
-            getTransacoesMesUseCase(inicio, fim)
-        },
+        transacaoRepository.getAll(),
         _mesSelecionado,
-        _categoriasMap
-    ) { transacoes, (mes, ano), categoriasMap ->
+        _filtroSelecionado,
+        _categoriasMap,
+        parcelamentoRepository.getAll()
+    ) { transacoes, (mes, ano), filtro, categoriasMap, parcelamentos ->
+        val (inicio, fim) = intervaloMes(mes, ano)
+        val parcelamentosPorTransacao = parcelamentos.associateBy { it.transacaoPrincipalId }
+        val transacoesDoMes = transacoes
+            .filter { it.dataCompetencia >= inicio && it.dataCompetencia < fim }
+            .map { transacao -> transacao.toUi(categoriasMap, parcelamentosPorTransacao[transacao.id]) }
+        val transacoesPorId = transacoes.associateBy { it.id }
+        val parcelasDoMes = parcelamentos.flatMap { parcelamento ->
+            val transacao = transacoesPorId[parcelamento.transacaoPrincipalId] ?: return@flatMap emptyList()
+            parcelamento.toParcelasUi(transacao, categoriasMap, inicio, fim)
+        }
+
         TransacaoListUiState(
             isLoading = false,
-            transacoes = transacoes
-                .sortedByDescending { it.dataCompetencia }
-                .map { it.toUi(categoriasMap) },
+            transacoes = (transacoesDoMes + parcelasDoMes)
+                .filter { item -> filtro.formaPagamento == null || item.formaPagamento == filtro.formaPagamento }
+                .sortedByDescending { it.ordenacao },
+            filtroAtual = filtro,
             mesAtual = mes,
             anoAtual = ano
         )
@@ -108,8 +119,6 @@ class TransacaoListViewModel @Inject constructor(
         initialValue = TransacaoListUiState(isLoading = true)
     )
 
-    // ─── Navegação entre meses ────────────────────────────────────────────────
-
     fun irParaMesAnterior() {
         _mesSelecionado.update { (mes, ano) ->
             if (mes == 0) Pair(11, ano - 1) else Pair(mes - 1, ano)
@@ -117,26 +126,28 @@ class TransacaoListViewModel @Inject constructor(
     }
 
     fun irParaProximoMes() {
-        if (!uiState.value.podeIrParaProximoMes) return
         _mesSelecionado.update { (mes, ano) ->
             if (mes == 11) Pair(0, ano + 1) else Pair(mes + 1, ano)
         }
     }
 
-    // ─── Ações ────────────────────────────────────────────────────────────────
+    fun definirMes(mes: Int, ano: Int) {
+        if (mes !in 0..11 || ano <= 0) return
+        _mesSelecionado.value = Pair(mes, ano)
+    }
+
+    fun alterarFiltro(filtro: FiltroTransacao) {
+        _filtroSelecionado.value = filtro
+    }
 
     fun deletarTransacao(id: Long) {
         viewModelScope.launch {
-            try {
+            runCatching {
                 val transacao = transacaoRepository.getById(id) ?: return@launch
                 transacaoRepository.delete(transacao)
-            } catch (e: Exception) {
-                // erro silencioso — o item volta para a lista via Flow reativo
             }
         }
     }
-
-    // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private fun mesAnoAtual(): Pair<Int, Int> {
         val cal = Calendar.getInstance()
@@ -156,7 +167,10 @@ class TransacaoListViewModel @Inject constructor(
         return Pair(inicio, fim)
     }
 
-    private fun Transacao.toUi(categoriasMap: Map<Long, String>): TransacaoItemUi {
+    private fun Transacao.toUi(
+        categoriasMap: Map<Long, String>,
+        parcelamento: Parcelamento?
+    ): TransacaoItemUi {
         val cal = Calendar.getInstance().apply { timeInMillis = dataCompetencia }
         val dataFormatada = "%02d/%02d/%04d".format(
             cal.get(Calendar.DAY_OF_MONTH),
@@ -164,13 +178,81 @@ class TransacaoListViewModel @Inject constructor(
             cal.get(Calendar.YEAR)
         )
         return TransacaoItemUi(
+            itemKey = "transacao-$id",
             id = id,
-            descricao = if (!observacao.isNullOrBlank()) observacao else "Sem descrição",
+            descricao = RegrasFinanceiras.descricaoVisivel(this)?.takeIf { it.isNotBlank() } ?: "Sem descrição",
             valorFormatado = "R$ %,.2f".format(valor),
             dataFormatada = dataFormatada,
-            categoriaNome = categoriaId?.let { categoriasMap[it] } ?: "Sem categoria",
+            categoriaNome = "${formaPagamento.toLabel()} - ${categoriaId?.let { categoriasMap[it] } ?: "Sem categoria"}",
             tipo = tipo,
-            isReceita = tipo == "receita"
+            formaPagamento = formaPagamento,
+            isReceita = tipo == "receita",
+            parcelamentoInfo = parcelamento?.toLancamentoInfo(valor),
+            ordenacao = dataCompetencia
+        )
+    }
+
+    private fun Parcelamento.toParcelasUi(
+        transacao: Transacao,
+        categoriasMap: Map<Long, String>,
+        inicioMes: Long,
+        fimMes: Long
+    ): List<TransacaoItemUi> {
+        return (parcelasPagas until totalParcelas).mapNotNull { indice ->
+            val vencimento = dataParcela(indice)
+            if (vencimento < inicioMes || vencimento >= fimMes) return@mapNotNull null
+
+            val parcelaAtual = indice + 1
+            val pendentes = (totalParcelas - parcelasPagas).coerceAtLeast(0)
+            TransacaoItemUi(
+                itemKey = "parcela-${transacao.id}-$indice",
+                id = transacao.id,
+                descricao = "${RegrasFinanceiras.descricaoVisivel(transacao) ?: "Compra parcelada"} ($parcelaAtual/$totalParcelas)",
+                valorFormatado = formatarValor(valorParcela),
+                dataFormatada = dataParaString(vencimento),
+                categoriaNome = "Cartão - ${transacao.categoriaId?.let { categoriasMap[it] } ?: "Sem categoria"}",
+                tipo = "despesa",
+                formaPagamento = "cartao",
+                isReceita = false,
+                parcelamentoInfo = "Parcela: ${formatarValor(valorParcela)} - $pendentes pendente(s)",
+                ordenacao = vencimento
+            )
+        }
+    }
+
+    private fun Parcelamento.dataParcela(indice: Int): Long =
+        Calendar.getInstance().apply {
+            timeInMillis = dataPrimeiraParcela
+            add(Calendar.MONTH, indice)
+        }.timeInMillis
+
+    private fun Parcelamento.toInfo(): String {
+        val pendentes = (totalParcelas - parcelasPagas).coerceAtLeast(0)
+        return "Parcelado: ${totalParcelas}x de ${formatarValor(valorParcela)} - $pendentes pendente(s)"
+    }
+
+    private fun Parcelamento.toLancamentoInfo(valorTotal: Double): String {
+        val pendentes = (totalParcelas - parcelasPagas).coerceAtLeast(0)
+        return "Lancamento parcelado: ${formatarValor(valorTotal)} em ${totalParcelas}x de ${formatarValor(valorParcela)} - $pendentes pendente(s)"
+    }
+
+    private fun formatarValor(valor: Double): String =
+        "R$ %,.2f".format(valor)
+
+    private fun String.toLabel(): String =
+        when (this) {
+            "conta" -> "Conta"
+            "cartao" -> "Cartão"
+            "dinheiro" -> "Dinheiro"
+            else -> this
+        }
+
+    private fun dataParaString(epochMillis: Long): String {
+        val cal = Calendar.getInstance().apply { timeInMillis = epochMillis }
+        return "%02d/%02d/%04d".format(
+            cal.get(Calendar.DAY_OF_MONTH),
+            cal.get(Calendar.MONTH) + 1,
+            cal.get(Calendar.YEAR)
         )
     }
 }

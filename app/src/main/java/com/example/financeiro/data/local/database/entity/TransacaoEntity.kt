@@ -38,7 +38,8 @@ import androidx.room.PrimaryKey
         Index("cartao_id"),
         Index("conta_id"),
         Index("categoria_id"),
-        Index("subcategoria_id")
+        Index("subcategoria_id"),
+        Index("recorrencia_id")
     ]
 )
 data class TransacaoEntity(
@@ -80,6 +81,12 @@ data class TransacaoEntity(
 
     @ColumnInfo(name = "observacao")
     val observacao: String? = null,
+
+    @ColumnInfo(name = "recorrencia_id")
+    val recorrenciaId: String? = null,
+
+    @ColumnInfo(name = "recorrencia_indice")
+    val recorrenciaIndice: Int? = null,
 
     @ColumnInfo(name = "criado_em")
     val criadoEm: Long = System.currentTimeMillis()

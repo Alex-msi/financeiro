@@ -46,6 +46,9 @@ class CategoriaRepositoryImpl @Inject constructor(
     override suspend fun getSubcategoriaById(id: Long): Subcategoria? =
         localDataSource.subcategoriaDao.getById(id)?.toDomain()
 
+    override fun getAllSubcategorias(): Flow<List<Subcategoria>> =
+        localDataSource.subcategoriaDao.getAll().map { list -> list.map { it.toDomain() } }
+
     override fun getSubcategoriasByCategoriaId(categoriaId: Long): Flow<List<Subcategoria>> =
         localDataSource.subcategoriaDao.getByCategoriaId(categoriaId).map { list -> list.map { it.toDomain() } }
 

@@ -28,12 +28,12 @@ class GerarParcelasUseCase @Inject constructor(
         }
         val diaCompra = dataCompra.get(Calendar.DAY_OF_MONTH)
 
-        // Se compra depois do fechamento, primeira fatura é no próximo mês
-        val primeiraMesOffset = if (diaCompra > cartao.diaFechamento) 1 else 0
+        val mesFechamentoOffset = if (diaCompra > cartao.diaFechamento) 1 else 0
+        val mesVencimentoOffset = if (cartao.diaVencimento <= cartao.diaFechamento) 1 else 0
 
         val dataPrimeiraParcela = Calendar.getInstance().apply {
             timeInMillis = transacao.dataCompetencia
-            add(Calendar.MONTH, primeiraMesOffset)
+            add(Calendar.MONTH, mesFechamentoOffset + mesVencimentoOffset)
             set(Calendar.DAY_OF_MONTH, cartao.diaVencimento)
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)

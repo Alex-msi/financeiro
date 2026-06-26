@@ -17,5 +17,6 @@ interface TransacaoRepository {
     fun getSomaDespesasPeriodo(inicio: Long, fim: Long): Flow<Double?>
     fun getSomaDespesasNaoParceladasPeriodo(inicio: Long, fim: Long): Flow<Double?>
     fun getSomaDespesasCartaoNaoParceladas(): Flow<Double?>
+    fun getSaldoTransacoesConta(): Flow<Double?>
     fun getSaldoPeriodo(inicio: Long, fim: Long): Flow<Double?>
 }

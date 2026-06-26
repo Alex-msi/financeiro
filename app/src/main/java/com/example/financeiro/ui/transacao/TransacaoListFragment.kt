@@ -39,28 +39,35 @@ class TransacaoListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        aplicarMesInicial()
         setupRecyclerView()
         setupBotoes()
         observeUiState()
     }
 
-    private fun setupRecyclerView() {
-        adapter = TransacaoAdapter(
-            onClique = { item ->
-                abrirEdicao(item.id)
-                // Navegação para edição implementada na S17
-            },
-            onDeletar = { id -> deletarTransacao(id) }
-        )
-        binding.recyclerTransacoes.adapter = adapter
-        binding.recyclerTransacoes.adicionarSwipeParaDeletar(adapter) { id ->
-            deletarTransacao(id)
+    private fun aplicarMesInicial() {
+        val mes = arguments?.getInt("mes", -1) ?: -1
+        val ano = arguments?.getInt("ano", -1) ?: -1
+        if (mes in 0..11 && ano > 0) {
+            viewModel.definirMes(mes, ano)
         }
     }
 
-    private fun confirmarExclusao(item: TransacaoItemUi) {
+    private fun setupRecyclerView() {
+        adapter = TransacaoAdapter(
+            onClique = { item -> abrirEdicao(item.id) },
+            onDeletar = { id -> confirmarExclusao(id) }
+        )
+        binding.recyclerTransacoes.adapter = adapter
+        binding.recyclerTransacoes.adicionarSwipeParaDeletar(adapter) { id ->
+            confirmarExclusao(id)
+        }
+    }
+
+    private fun confirmarExclusao(id: Long) {
+        val item = adapter.currentList.firstOrNull { it.id == id } ?: return
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Excluir transacao")
+            .setTitle("Excluir transação")
             .setMessage("Deseja excluir \"${item.descricao}\"?")
             .setNegativeButton("Cancelar", null)
             .setPositiveButton("Excluir") { _, _ ->
@@ -71,7 +78,7 @@ class TransacaoListFragment : Fragment() {
 
     private fun deletarTransacao(id: Long) {
         viewModel.deletarTransacao(id)
-        Snackbar.make(binding.root, "Transacao excluida", Snackbar.LENGTH_SHORT).show()
+        Snackbar.make(binding.root, "Transação excluída.", Snackbar.LENGTH_SHORT).show()
     }
 
     private fun abrirEdicao(id: Long) {
@@ -84,8 +91,11 @@ class TransacaoListFragment : Fragment() {
     private fun setupBotoes() {
         binding.btnMesAnterior.setOnClickListener { viewModel.irParaMesAnterior() }
         binding.btnProximoMes.setOnClickListener { viewModel.irParaProximoMes() }
+        binding.btnFiltroTodos.setOnClickListener { viewModel.alterarFiltro(FiltroTransacao.TODOS) }
+        binding.btnFiltroConta.setOnClickListener { viewModel.alterarFiltro(FiltroTransacao.CONTA) }
+        binding.btnFiltroCartao.setOnClickListener { viewModel.alterarFiltro(FiltroTransacao.CARTAO) }
+        binding.btnFiltroDinheiro.setOnClickListener { viewModel.alterarFiltro(FiltroTransacao.DINHEIRO) }
 
-        // FAB para adicionar transação — navegação implementada na S17
         binding.fabAdicionarTransacao.setOnClickListener {
             findNavController().navigate(R.id.action_lista_to_adicionar)
         }
@@ -102,6 +112,14 @@ class TransacaoListFragment : Fragment() {
                     binding.tvLabelMes.text = state.labelMes
                     binding.btnProximoMes.isEnabled = state.podeIrParaProximoMes
                     binding.btnProximoMes.alpha = if (state.podeIrParaProximoMes) 1f else 0.3f
+                    binding.toggleFiltros.check(
+                        when (state.filtroAtual) {
+                            FiltroTransacao.TODOS -> R.id.btn_filtro_todos
+                            FiltroTransacao.CONTA -> R.id.btn_filtro_conta
+                            FiltroTransacao.CARTAO -> R.id.btn_filtro_cartao
+                            FiltroTransacao.DINHEIRO -> R.id.btn_filtro_dinheiro
+                        }
+                    )
 
                     adapter.submitList(state.transacoes)
                 }

@@ -7,6 +7,7 @@ import android.graphics.RectF
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ListAdapter
@@ -29,6 +30,8 @@ class TransacaoAdapter(
             binding.tvData.text = item.dataFormatada
             binding.tvCategoria.text = item.categoriaNome
             binding.tvValor.text = item.valorFormatado
+            binding.tvParcelamento.text = item.parcelamentoInfo.orEmpty()
+            binding.tvParcelamento.isVisible = item.parcelamentoInfo != null
 
             val corValor = if (item.isReceita)
                 ContextCompat.getColor(binding.root.context, R.color.receita)
@@ -65,7 +68,7 @@ class TransacaoAdapter(
     fun getItemAtPosition(position: Int): TransacaoItemUi = getItem(position)
 
     class TransacaoDiff : DiffUtil.ItemCallback<TransacaoItemUi>() {
-        override fun areItemsTheSame(a: TransacaoItemUi, b: TransacaoItemUi) = a.id == b.id
+        override fun areItemsTheSame(a: TransacaoItemUi, b: TransacaoItemUi) = a.itemKey == b.itemKey
         override fun areContentsTheSame(a: TransacaoItemUi, b: TransacaoItemUi) = a == b
     }
 }

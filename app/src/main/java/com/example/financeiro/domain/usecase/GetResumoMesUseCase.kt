@@ -1,5 +1,6 @@
 package com.example.financeiro.domain.usecase
 
+import com.example.financeiro.domain.finance.RegrasFinanceiras
 import com.example.financeiro.domain.repository.ParcelamentoRepository
 import com.example.financeiro.domain.repository.TransacaoRepository
 import kotlinx.coroutines.flow.Flow
@@ -18,16 +19,19 @@ class GetResumoMesUseCase @Inject constructor(
 ) {
     operator fun invoke(inicioMes: Long, fimMes: Long): Flow<ResumoMes> =
         combine(
-            transacaoRepository.getSomaReceitasPeriodo(inicioMes, fimMes),
-            transacaoRepository.getSomaDespesasNaoParceladasPeriodo(inicioMes, fimMes),
-            parcelamentoRepository.getSomaParcelasFuturasPorMes(inicioMes, fimMes)
-        ) { receitas, despesasNaoParceladas, parcelasDoMes ->
-            val r = receitas ?: 0.0
-            val d = (despesasNaoParceladas ?: 0.0) + (parcelasDoMes ?: 0.0)
+            transacaoRepository.getAll(),
+            parcelamentoRepository.getAll()
+        ) { transacoes, parcelamentos ->
+            val totais = RegrasFinanceiras.calcularTotaisMes(
+                transacoes,
+                parcelamentos,
+                inicioMes,
+                fimMes
+            )
             ResumoMes(
-                totalReceitas = r,
-                totalDespesas = d,
-                saldo = r - d
+                totalReceitas = totais.receitas,
+                totalDespesas = totais.despesas,
+                saldo = totais.saldo
             )
         }
 }
