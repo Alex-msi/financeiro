@@ -3,6 +3,10 @@ package com.example.financeiro
 import android.content.Context
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import dagger.hilt.android.AndroidEntryPoint
@@ -27,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        configurarBarrasDoSistema()
 
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
@@ -50,5 +55,20 @@ class MainActivity : AppCompatActivity() {
             navController.navigate(R.id.action_global_dashboard)
         }
         // Caso contrário: permanece no startDestination (OnboardingFragment)
+    }
+
+    private fun configurarBarrasDoSistema() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
+
+        val root = findViewById<android.view.View>(R.id.main)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val barras = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(barras.left, barras.top, barras.right, barras.bottom)
+            insets
+        }
     }
 }

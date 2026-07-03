@@ -15,6 +15,9 @@ interface SubcategoriaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(subcategoria: SubcategoriaEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(subcategorias: List<SubcategoriaEntity>)
+
     @Update
     suspend fun update(subcategoria: SubcategoriaEntity)
 
@@ -32,4 +35,7 @@ interface SubcategoriaDao {
 
     @Query("SELECT * FROM subcategorias WHERE categoria_id = :categoriaId AND ativa = 1 ORDER BY nome ASC")
     fun getAtivasByCategoriaId(categoriaId: Long): Flow<List<SubcategoriaEntity>>
+
+    @Query("DELETE FROM subcategorias")
+    suspend fun deleteAll()
 }

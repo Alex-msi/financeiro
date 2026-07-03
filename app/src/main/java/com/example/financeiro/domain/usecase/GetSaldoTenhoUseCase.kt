@@ -17,7 +17,10 @@ class GetSaldoTenhoUseCase @Inject constructor(
     private val parcelamentoRepository: ParcelamentoRepository,
     private val cartaoRepository: CartaoRepository
 ) {
-    operator fun invoke(ate: Long): Flow<Double> =
+    operator fun invoke(
+        ateCompromissos: Long,
+        ateReceitas: Long = ateCompromissos
+    ): Flow<Double> =
         combine(
             contaRepository.getSaldoTotal(),
             transacaoRepository.getAll(),
@@ -26,13 +29,18 @@ class GetSaldoTenhoUseCase @Inject constructor(
         ) { saldoContas, transacoes, parcelamentos, cartoes ->
             val saldoTransacoesDisponiveis = transacoes
                 .filter { it.formaPagamento == "conta" || it.formaPagamento == "dinheiro" }
-                .filter { it.dataCompetencia <= ate }
-                .sumOf { if (it.tipo == "receita") it.valor else -it.valor }
+                .sumOf {
+                    when {
+                        it.tipo == "receita" && it.dataCompetencia <= ateReceitas -> it.valor
+                        it.tipo == "despesa" && it.dataCompetencia <= ateCompromissos -> -it.valor
+                        else -> 0.0
+                    }
+                }
             val dividaCartoes =
-                calcularDividaComprasAvulsasAte(transacoes, cartoes, ate)
+                calcularDividaComprasAvulsasAte(transacoes, cartoes, ateCompromissos)
             val dividaParcelamentos = parcelamentos.sumOf { parcelamento ->
                 (parcelamento.parcelasPagas until parcelamento.totalParcelas).sumOf { indice ->
-                    if (RegrasFinanceiras.dataParcela(parcelamento, indice) <= ate) {
+                    if (RegrasFinanceiras.dataParcela(parcelamento, indice) <= ateCompromissos) {
                         parcelamento.valorParcela
                     } else {
                         0.0

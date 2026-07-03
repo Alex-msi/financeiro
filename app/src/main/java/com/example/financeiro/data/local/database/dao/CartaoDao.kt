@@ -15,6 +15,9 @@ interface CartaoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(cartao: CartaoEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(cartoes: List<CartaoEntity>)
+
     @Update
     suspend fun update(cartao: CartaoEntity)
 
@@ -39,4 +42,7 @@ interface CartaoDao {
         AND t.data_competencia < :fimMes
     """)
     fun getFaturaMes(cartaoId: Long, inicioMes: Long, fimMes: Long): Flow<Double?>
+
+    @Query("DELETE FROM cartoes")
+    suspend fun deleteAll()
 }

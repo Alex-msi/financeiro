@@ -6,7 +6,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -29,6 +28,7 @@ class DashboardFragment : Fragment() {
 
     private val viewModel: DashboardViewModel by viewModels()
     private lateinit var faturaAdapter: FaturaCartaoAdapter
+    private var ocultarSaldos = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -41,6 +41,9 @@ class DashboardFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        ocultarSaldos = requireContext()
+            .getSharedPreferences("financeiro_prefs", 0)
+            .getBoolean("ocultar_saldos_dashboard", false)
         setupFaturas()
         setupBotoes()
         observeUiState()
@@ -57,6 +60,16 @@ class DashboardFragment : Fragment() {
     private fun setupBotoes() {
         binding.btnMesAnterior.setOnClickListener {
             viewModel.irParaMesAnterior()
+        }
+        binding.btnOcultarSaldos.setOnClickListener {
+            ocultarSaldos = !ocultarSaldos
+            requireContext()
+                .getSharedPreferences("financeiro_prefs", 0)
+                .edit()
+                .putBoolean("ocultar_saldos_dashboard", ocultarSaldos)
+                .apply()
+            atualizarPrivacidadeSaldos()
+            observeUiStateRender(viewModel.uiState.value)
         }
         binding.btnProximoMes.setOnClickListener {
             viewModel.irParaProximoMes()
@@ -82,6 +95,27 @@ class DashboardFragment : Fragment() {
         }
     }
 
+    private fun observeUiStateRender(state: DashboardUiState) {
+        binding.tvSaldoTenho.text = valorPrivado(state.saldoTenho)
+        binding.tvSaldoAtual.text = valorPrivado(state.saldoAtual)
+        binding.tvReceitas.text = valorPrivado(state.totalReceitas)
+        binding.tvDespesas.text = valorPrivado(state.totalDespesas)
+        atualizarPrivacidadeSaldos()
+        faturaAdapter.ocultarValores = ocultarSaldos
+        faturaAdapter.submitList(state.faturas)
+    }
+
+    private fun atualizarPrivacidadeSaldos() {
+        binding.btnOcultarSaldos.setIconResource(
+            if (ocultarSaldos) R.drawable.ic_visibility_off else R.drawable.ic_visibility
+        )
+        binding.btnOcultarSaldos.contentDescription =
+            if (ocultarSaldos) "Mostrar saldos" else "Ocultar saldos"
+    }
+
+    private fun valorPrivado(valor: Double): String =
+        if (ocultarSaldos) "******" else formatarValor(valor)
+
     private fun observeUiState() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -95,26 +129,13 @@ class DashboardFragment : Fragment() {
                     binding.progressBar.visibility = View.GONE
                     binding.contentGroup.visibility = View.VISIBLE
 
-                    binding.tvSaldoTenho.text = formatarValor(state.saldoTenho)
-                    binding.tvSaldoAtual.text = formatarValor(state.saldoAtual)
                     binding.tvLabelMes.text = state.labelMes
                     binding.btnProximoMes.isEnabled = state.podeIrParaProximoMes
                     binding.btnProximoMes.alpha = if (state.podeIrParaProximoMes) 1f else 0.3f
 
-                    binding.tvReceitas.text = formatarValor(state.totalReceitas)
-                    binding.tvDespesas.text = formatarValor(state.totalDespesas)
-                    binding.tvSaldoMes.text = formatarValor(state.saldoMes)
-
-                    val corSaldo = if (state.saldoMes >= 0) {
-                        ContextCompat.getColor(requireContext(), R.color.receita)
-                    } else {
-                        ContextCompat.getColor(requireContext(), R.color.despesa)
-                    }
-                    binding.tvSaldoMes.setTextColor(corSaldo)
-
                     binding.layoutFaturas.visibility =
                         if (state.faturas.isEmpty()) View.GONE else View.VISIBLE
-                    faturaAdapter.submitList(state.faturas)
+                    observeUiStateRender(state)
                 }
             }
         }
@@ -154,7 +175,7 @@ class DashboardFragment : Fragment() {
         val state = viewModel.uiState.value
         val opcoes = state.contasPagamento.map { it.nome } + "Dinheiro"
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Pagar ${item.valorFormatado}")
+            .setTitle(if (ocultarSaldos) "Pagar fatura" else "Pagar ${item.valorFormatado}")
             .setItems(opcoes.toTypedArray()) { _, which ->
                 val conta = state.contasPagamento.getOrNull(which)
                 if (conta != null) {
@@ -175,8 +196,11 @@ class DashboardFragment : Fragment() {
     ) {
         val campoValor = EditText(requireContext()).apply {
             inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-            setText("%.2f".format(valorAberto).replace(",", "."))
-            selectAll()
+            hint = "Valor do pagamento"
+            if (!ocultarSaldos) {
+                setText("%.2f".format(valorAberto).replace(",", "."))
+                selectAll()
+            }
         }
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Valor do pagamento")

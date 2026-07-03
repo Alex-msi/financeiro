@@ -25,8 +25,12 @@
 
     <!-- Conteúdo com scroll -->
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_formulario"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingBottom="112dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
@@ -259,7 +263,7 @@
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Numero de parcelas"
+                    android:hint="Número de parcelas"
                     android:layout_marginBottom="16dp"
                     android:visibility="gone">
 

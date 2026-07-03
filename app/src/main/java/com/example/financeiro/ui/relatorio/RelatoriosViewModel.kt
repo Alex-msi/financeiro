@@ -14,15 +14,20 @@ import com.example.financeiro.domain.repository.CartaoRepository
 import com.example.financeiro.domain.repository.ContaRepository
 import com.example.financeiro.domain.repository.ParcelamentoRepository
 import com.example.financeiro.domain.repository.TransacaoRepository
+import com.example.financeiro.domain.usecase.RestaurarBackupUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.Calendar
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class CategoriaRelatorioUi(
     val nome: String,
@@ -90,10 +95,13 @@ class RelatoriosViewModel @Inject constructor(
     parcelamentoRepository: ParcelamentoRepository,
     categoriaRepository: CategoriaRepository,
     contaRepository: ContaRepository,
-    cartaoRepository: CartaoRepository
+    cartaoRepository: CartaoRepository,
+    private val restaurarBackupUseCase: RestaurarBackupUseCase
 ) : ViewModel() {
 
     private val mesSelecionado = MutableStateFlow(mesAnoAtual())
+    private val _eventos = MutableSharedFlow<RelatoriosEvento>()
+    val eventos: SharedFlow<RelatoriosEvento> = _eventos.asSharedFlow()
     private val categoriasESubcategorias = combine(
         categoriaRepository.getAll(),
         categoriaRepository.getAllSubcategorias()
@@ -185,6 +193,20 @@ class RelatoriosViewModel @Inject constructor(
     fun irParaProximoMes() {
         mesSelecionado.update { (mes, ano) ->
             if (mes == 11) 0 to ano + 1 else mes + 1 to ano
+        }
+    }
+
+    fun restaurarBackup(conteudo: String) {
+        viewModelScope.launch {
+            restaurarBackupUseCase(conteudo)
+                .onSuccess { _eventos.emit(RelatoriosEvento.BackupRestaurado) }
+                .onFailure { erro ->
+                    _eventos.emit(
+                        RelatoriosEvento.Erro(
+                            erro.message ?: "Nao foi possivel restaurar o backup."
+                        )
+                    )
+                }
         }
     }
 
@@ -332,4 +354,9 @@ class RelatoriosViewModel @Inject constructor(
         val agora = Calendar.getInstance()
         return agora.get(Calendar.MONTH) to agora.get(Calendar.YEAR)
     }
+}
+
+sealed class RelatoriosEvento {
+    data object BackupRestaurado : RelatoriosEvento()
+    data class Erro(val mensagem: String) : RelatoriosEvento()
 }

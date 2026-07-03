@@ -12,12 +12,18 @@ class FaturaCartaoAdapter(
     private val onPagar: (FaturaCartaoUi) -> Unit
 ) : ListAdapter<FaturaCartaoUi, FaturaCartaoAdapter.ViewHolder>(FaturaCartaoDiff()) {
 
+    var ocultarValores: Boolean = false
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+
     inner class ViewHolder(private val binding: ItemFaturaCartaoBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: FaturaCartaoUi) {
             binding.tvNomeCartao.text = item.nomeCartao
-            binding.tvValorFatura.text = item.valorFormatado
+            binding.tvValorFatura.text = if (ocultarValores) "******" else item.valorFormatado
             binding.tvResumoParcelas.text = item.resumoParcelas
             binding.btnPagarFatura.isVisible = item.valor > 0.0
             binding.btnPagarFatura.setOnClickListener { onPagar(item) }

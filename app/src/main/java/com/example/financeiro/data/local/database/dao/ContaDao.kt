@@ -15,6 +15,9 @@ interface ContaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(conta: ContaEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(contas: List<ContaEntity>)
+
     @Update
     suspend fun update(conta: ContaEntity)
 
@@ -32,4 +35,7 @@ interface ContaDao {
 
     @Query("SELECT SUM(saldo_atual) FROM contas WHERE ativa = 1")
     fun getSaldoTotal(): Flow<Double?>
+
+    @Query("DELETE FROM contas")
+    suspend fun deleteAll()
 }

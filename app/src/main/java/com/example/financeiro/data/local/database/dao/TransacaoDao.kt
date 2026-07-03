@@ -15,6 +15,9 @@ interface TransacaoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transacao: TransacaoEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(transacoes: List<TransacaoEntity>)
+
     @Update
     suspend fun update(transacao: TransacaoEntity)
 
@@ -112,4 +115,7 @@ interface TransacaoDao {
         AND data_competencia < :fim
     """)
     fun getSaldoPeriodo(inicio: Long, fim: Long): Flow<Double?>
+
+    @Query("DELETE FROM transacoes")
+    suspend fun deleteAll()
 }

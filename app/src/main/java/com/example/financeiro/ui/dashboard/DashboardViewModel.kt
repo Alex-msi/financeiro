@@ -93,10 +93,13 @@ class DashboardViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<DashboardUiState> = combine(
         _mesSelecionado.flatMapLatest { (mes, ano) ->
-            val referenciaSaldo = referenciaSaldo(mes, ano)
+            val (_, fimMes) = intervaloMes(mes, ano)
             combine(
-                getSaldoTenhoUseCase(referenciaSaldo),
-                getSaldoAtualUseCase(referenciaSaldo)
+                getSaldoTenhoUseCase(
+                    ateCompromissos = Long.MAX_VALUE,
+                    ateReceitas = fimMes
+                ),
+                getSaldoAtualUseCase(fimMes)
             ) { saldoTenho, saldoAtual -> saldoTenho to saldoAtual }
         },
         _mesSelecionado.flatMapLatest { (mes, ano) ->
@@ -196,22 +199,6 @@ class DashboardViewModel @Inject constructor(
         }.timeInMillis
 
         return Pair(inicio, fim)
-    }
-
-    private fun referenciaSaldo(mes: Int, ano: Int): Long {
-        val agora = Calendar.getInstance()
-        val mesAtual = agora.get(Calendar.MONTH)
-        val anoAtual = agora.get(Calendar.YEAR)
-        return if (mes == mesAtual && ano == anoAtual) {
-            Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 23)
-                set(Calendar.MINUTE, 59)
-                set(Calendar.SECOND, 59)
-                set(Calendar.MILLISECOND, 999)
-            }.timeInMillis
-        } else {
-            intervaloMes(mes, ano).second
-        }
     }
 
     private data class CalculoFatura(

@@ -1,6 +1,7 @@
 package com.example.financeiro.ui.transacao
 
 import android.app.DatePickerDialog
+import android.graphics.Rect
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -48,6 +49,7 @@ class AdicionarTransacaoFragment : Fragment() {
         // if (id != -1L) viewModel.carregarTransacao(id)
 
         setupCampos()
+        configurarRolagemComTeclado()
         setupBotoes()
         observeUiState()
         carregarTransacaoSeNecessario()
@@ -98,6 +100,45 @@ class AdicionarTransacaoFragment : Fragment() {
         binding.toggleConta.setOnClickListener { viewModel.onFormaPagamentoChanged("conta") }
         binding.toggleCartao.setOnClickListener { viewModel.onFormaPagamentoChanged("cartao") }
         binding.toggleDinheiro.setOnClickListener { viewModel.onFormaPagamentoChanged("dinheiro") }
+    }
+
+    private fun configurarRolagemComTeclado() {
+        val campos = listOf<View>(
+            binding.editObservacao,
+            binding.editValor,
+            binding.editData,
+            binding.autoCompleteCategoria,
+            binding.autoCompleteSubcategoria,
+            binding.autoCompleteConta,
+            binding.autoCompleteCartao,
+            binding.editNumeroParcelas,
+            binding.editParcelasPagas,
+            binding.editQuantidadeRecorrencias
+        )
+        campos.forEach { campo ->
+            campo.setOnFocusChangeListener { view, hasFocus ->
+                if (hasFocus) rolarAteCampo(view)
+            }
+            campo.setOnClickListener {
+                rolarAteCampo(campo)
+                when (campo) {
+                    binding.autoCompleteConta -> binding.autoCompleteConta.showDropDown()
+                    binding.autoCompleteCartao -> binding.autoCompleteCartao.showDropDown()
+                    binding.autoCompleteCategoria -> binding.autoCompleteCategoria.showDropDown()
+                    binding.autoCompleteSubcategoria -> binding.autoCompleteSubcategoria.showDropDown()
+                    binding.editData -> abrirDatePicker()
+                }
+            }
+        }
+    }
+
+    private fun rolarAteCampo(campo: View) {
+        binding.scrollFormulario.postDelayed({
+            val rect = Rect()
+            campo.getDrawingRect(rect)
+            binding.scrollFormulario.offsetDescendantRectToMyCoords(campo, rect)
+            binding.scrollFormulario.smoothScrollTo(0, (rect.top - 96).coerceAtLeast(0))
+        }, 220)
     }
 
     private fun setupBotoes() {

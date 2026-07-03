@@ -1,12 +1,15 @@
 package com.example.financeiro.ui.relatorio
 
+import android.app.Activity
 import android.graphics.Color
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -14,10 +17,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
-import androidx.core.content.FileProvider
 import com.example.financeiro.R
 import com.example.financeiro.databinding.FragmentRelatoriosBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
@@ -40,6 +43,22 @@ class RelatoriosFragment : Fragment() {
     private val viewModel: RelatoriosViewModel by viewModels()
     private val adapter = CategoriasRelatorioAdapter()
     private var estadoAtual = RelatoriosUiState()
+    private val selecionarBackupLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { resultado ->
+        if (resultado.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+        val root = _binding?.root ?: return@registerForActivityResult
+        val uri = resultado.data?.data ?: return@registerForActivityResult
+        val conteudo = requireContext().contentResolver.openInputStream(uri)
+            ?.bufferedReader()
+            ?.use { it.readText() }
+
+        if (conteudo.isNullOrBlank()) {
+            Snackbar.make(root, "Nao foi possivel ler o arquivo.", Snackbar.LENGTH_LONG).show()
+        } else {
+            confirmarRestauracao(conteudo)
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -57,8 +76,9 @@ class RelatoriosFragment : Fragment() {
         binding.btnVoltar.setOnClickListener { findNavController().navigateUp() }
         binding.btnMesAnterior.setOnClickListener { viewModel.irParaMesAnterior() }
         binding.btnProximoMes.setOnClickListener { viewModel.irParaProximoMes() }
-        binding.btnExportar.setOnClickListener { escolherExportacao() }
+        binding.btnExportar.setOnClickListener { escolherDados() }
         observarEstado()
+        observarEventos()
     }
 
     private fun escolherExportacao() {
@@ -66,6 +86,42 @@ class RelatoriosFragment : Fragment() {
             .setTitle("Exportar")
             .setItems(arrayOf("Relatório do mês", "Backup completo")) { _, which ->
                 if (which == 0) exportarCsv() else exportarBackup()
+            }
+            .show()
+    }
+
+    private fun escolherDados() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Dados")
+            .setItems(arrayOf("Relatorio do mes", "Criar backup", "Restaurar backup")) { _, which ->
+                when (which) {
+                    0 -> exportarCsv()
+                    1 -> exportarBackup()
+                    2 -> selecionarArquivoBackup()
+                }
+            }
+            .show()
+    }
+
+    private fun selecionarArquivoBackup() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(
+                Intent.EXTRA_MIME_TYPES,
+                arrayOf("application/json", "text/json", "text/plain", "*/*")
+            )
+        }
+        selecionarBackupLauncher.launch(intent)
+    }
+
+    private fun confirmarRestauracao(conteudo: String) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Restaurar backup?")
+            .setMessage("A restauracao vai substituir todos os dados atuais do app pelos dados do backup selecionado.")
+            .setNegativeButton("Cancelar", null)
+            .setPositiveButton("Restaurar") { _, _ ->
+                viewModel.restaurarBackup(conteudo)
             }
             .show()
     }
@@ -91,6 +147,28 @@ class RelatoriosFragment : Fragment() {
                     binding.recyclerCategorias.isVisible = !state.semDespesas
                     adapter.submitList(state.categorias)
                     atualizarGrafico(state.evolucao)
+                }
+            }
+        }
+    }
+
+    private fun observarEventos() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.eventos.collect { evento ->
+                    when (evento) {
+                        RelatoriosEvento.BackupRestaurado -> {
+                            Snackbar.make(
+                                binding.root,
+                                "Backup restaurado com sucesso.",
+                                Snackbar.LENGTH_LONG
+                            ).show()
+                        }
+
+                        is RelatoriosEvento.Erro -> {
+                            Snackbar.make(binding.root, evento.mensagem, Snackbar.LENGTH_LONG).show()
+                        }
+                    }
                 }
             }
         }

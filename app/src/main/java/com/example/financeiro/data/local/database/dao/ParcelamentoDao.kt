@@ -15,6 +15,9 @@ interface ParcelamentoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(parcelamento: ParcelamentoEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(parcelamentos: List<ParcelamentoEntity>)
+
     @Update
     suspend fun update(parcelamento: ParcelamentoEntity)
 
@@ -64,4 +67,7 @@ interface ParcelamentoDao {
         AND data_primeira_parcela < :fimMes
     """)
     fun getSomaParcelasFuturasPorMes(inicioMes: Long, fimMes: Long): Flow<Double?>
+
+    @Query("DELETE FROM parcelamentos")
+    suspend fun deleteAll()
 }

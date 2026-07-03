@@ -15,6 +15,9 @@ interface CategoriaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(categoria: CategoriaEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(categorias: List<CategoriaEntity>)
+
     @Update
     suspend fun update(categoria: CategoriaEntity)
 
@@ -29,4 +32,7 @@ interface CategoriaDao {
 
     @Query("SELECT * FROM categorias WHERE tipo = :tipo ORDER BY nome ASC")
     fun getByTipo(tipo: String): Flow<List<CategoriaEntity>>
+
+    @Query("DELETE FROM categorias")
+    suspend fun deleteAll()
 }
